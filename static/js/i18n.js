@@ -1,0 +1,135 @@
+/**
+ * 国际化 (i18n) 配置
+ * 支持中文和英文切换
+ */
+
+const i18n = {
+    zh: {
+        'game-title': '字词接龙游戏',
+        'game-subtitle': '挑战你的词汇能力，找到连接词汇的桥梁！',
+        'demo-title': '游戏演示',
+        'demo-explanation': '找到能连接这两个字的答案：学 + <strong>校</strong> + 园 = 学<strong>校</strong>、<strong>校</strong>园',
+        'how-to-play': '如何游戏',
+        'instruction-1': '🎯 观察给出的2个字（中文）或3个单词（英文）',
+        'instruction-2': '🧠 思考能连接它们的答案',
+        'instruction-3': '⏱️ 5分钟内答对越多题，得分越高（每题2分）',
+        'instruction-4': '⏭️ 不会的题目可以选择跳过',
+        'difficulty-label': '选择难度：',
+        'difficulty-easy': '简单 (小学)',
+        'difficulty-medium': '中等 (初中)',
+        'difficulty-hard': '困难 (高中)',
+        'difficulty-professional': '专业 (大学)',
+        'start-game': '开始游戏',
+        'time-left': '剩余时间：',
+        'score': '得分：',
+        'correct': '答对：',
+        'hint-instruction': '输入能连接两侧词语的字/词',
+        'submit': '提交答案',
+        'skip': '跳过此题',
+        'difficulty-warning': '⚠️ 改变难度将重置游戏进度',
+        'submit-score': '提交成绩',
+        'nickname': '昵称：',
+        'school': '学校（可选）：',
+        'captcha-label': '验证码：',
+        'refresh': '刷新',
+        'ok': '确定',
+        'loading': '加载中...',
+        'correct-answer': '答案正确！',
+        'wrong-answer': '答案错误，请再试一次',
+        'game-over': '游戏结束！',
+        'your-score': '你的得分：',
+        'time-up': '时间到！',
+        'about-tagline': '字词接龙 · Word Bridge',
+        'about-made-by': '作者',
+        'about-from': '团队',
+        'share-title': '分享游戏',
+        'share-description': '复制链接分享给朋友：',
+        'copy': '复制',
+        'copy-success': '✓ 链接已复制到剪贴板',
+        'demo-title': '开发者调试模式',
+        'demo-controls': '测试控制面板',
+        'generate': '生成题目',
+        'correct-answer-label': '正确答案',
+        'explanation': '解释说明',
+        'language-mode': '语言模式',
+        'unlock': '解锁Demo',
+        'share-btn': '分享',
+        'about-btn': '关于'
+    },
+    en: {
+        'game-title': 'ARAT Word Bridge Game',
+        'game-subtitle': 'Challenge your vocabulary and find the connecting bridge!',
+        'demo-title': 'Game Demo',
+        'demo-explanation': 'Find the bridge word: 学 + <strong>校</strong> + 园 = 学<strong>校</strong>、<strong>校</strong>园',
+        'demo-explanation': 'Find the word that connects all: cot<strong>tage</strong> + <strong>cheese</strong> + <strong>cake</strong> = cheese',
+        'how-to-play': 'How to Play',
+        'instruction-1': '🎯 Observe the 2 characters (Chinese) or 3 words (English)',
+        'instruction-2': '🧠 Think of the answer that connects them',
+        'instruction-3': '⏱️ Answer as many as possible in 5 minutes (2 points per question)',
+        'instruction-4': '⏭️ Skip questions you find too difficult',
+        'difficulty-label': 'Select Difficulty:',
+        'difficulty-easy': 'Easy (Elementary)',
+        'difficulty-medium': 'Medium (Middle School)',
+        'difficulty-hard': 'Hard (High School)',
+        'difficulty-professional': 'Professional (University)',
+        'start-game': 'Start Game',
+        'time-left': 'Time Left:',
+        'score': 'Score:',
+        'correct': 'Correct:',
+        'hint-instruction': 'Enter the connecting word',
+        'submit': 'Submit to Leaderboard',
+        'skip': 'Skip Question',
+        'difficulty-warning': '⚠️ Changing difficulty will reset game progress',
+        'submit-score': 'Submit Score',
+        'nickname': 'Nickname:',
+        'school': 'School (Optional):',
+        'captcha-label': 'Captcha:',
+        'refresh': 'Refresh',
+        'ok': 'OK',
+        'loading': 'Loading...',
+        'correct-answer': 'Correct!',
+        'wrong-answer': 'Wrong answer, please try again',
+        'game-over': 'Game Over!',
+        'your-score': 'Your Score:',
+        'time-up': 'Time\'s up!',
+        'about-tagline': 'Word Bridge Game',
+        'about-made-by': 'Made by',
+        'about-from': 'From',
+        'share-title': 'Share Game',
+        'share-description': 'Copy link to share with friends:',
+        'copy': 'Copy',
+        'copy-success': '✓ Link copied to clipboard',
+        'demo-title': 'Developer Debug Mode',
+        'demo-controls': 'Test Control Panel',
+        'generate': 'Generate Puzzle',
+        'correct-answer-label': 'Correct Answer',
+        'explanation': 'Explanation',
+        'language-mode': 'Language Mode',
+        'unlock': 'Unlock Demo',
+        'share-btn': 'Share',
+        'about-btn': 'About'
+    }
+};
+
+let currentLang = 'zh';
+
+function setLanguage(lang) {
+    currentLang = lang;
+    const elements = document.querySelectorAll('[data-i18n]');
+    elements.forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (i18n[lang][key]) {
+            el.innerHTML = i18n[lang][key];
+        }
+    });
+}
+
+function t(key) {
+    return i18n[currentLang][key] || key;
+}
+
+// Initialize language
+document.addEventListener('DOMContentLoaded', () => {
+    setLanguage('zh');
+});
+

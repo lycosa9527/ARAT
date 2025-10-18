@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARAT - Demo Access</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        /* Passkey Page Styles (MindGraph-inspired) */
+        body.passkey-mode {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-size: 200% 200%;
+            animation: gradientShift 10s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+        
+        .passkey-container {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            padding: 60px 50px;
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .passkey-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            animation: logoFloat 3s ease-in-out infinite;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .passkey-container h1 {
+            color: #1e293b;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        
+        .passkey-container .subtitle {
+            color: #64748b;
+            font-size: 15px;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+        
+        .passkey-input-group {
+            margin-bottom: 24px;
+        }
+        
+        .passkey-input {
+            width: 100%;
+            padding: 18px 24px;
+            font-size: 20px;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 8px;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            outline: none;
+            transition: all 0.3s;
+            background: #f8fafc;
+        }
+        
+        .passkey-input:focus {
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+        
+        .passkey-input.error {
+            border-color: #ef4444;
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        .passkey-submit {
+            width: 100%;
+            padding: 18px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .passkey-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 25px -5px rgba(102, 126, 234, 0.4);
+        }
+        
+        .passkey-submit:active {
+            transform: translateY(0);
+        }
+        
+        .passkey-alert {
+            padding: 14px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-size: 14px;
+            display: none;
+        }
+        
+        .passkey-alert.show {
+            display: block;
+        }
+        
+        .passkey-alert.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        
+        .passkey-hint {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-top: 24px;
+            line-height: 1.6;
+        }
+        
+        #passkeyPage {
+            display: flex;
+        }
+        
+        #gamePage {
+            display: none;
+        }
+        
+        #gamePage.active {
+            display: block;
+        }
+        
+        body.passkey-mode #gamePage {
+            display: none;
+        }
+        
+        body.game-mode #passkeyPage {
+            display: none;
+        }
+        
+        body.game-mode #gamePage {
+            display: block;
+        }
+        
+        /* Demo Badge */
+        .demo-badge {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, #f5576c, #ff6b7a);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(245, 87, 108, 0.4);
+            z-index: 1001;
+            display: none;
+        }
+        
+        body.game-mode .demo-badge {
+            display: block;
+        }
+        
+        /* Answer Display in Game */
+        .answer-reveal {
+            text-align: center;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, #4facfe20 0%, #00f2fe20 100%);
+            border: 2px solid #4facfe;
+            border-radius: 12px;
+        }
+        
+        .answer-reveal h4 {
+            color: #4facfe;
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9rem;
+        }
+        
+        .answer-reveal .answer-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #667eea;
+            letter-spacing: 0.1em;
+        }
+    </style>
+</head>
+<body class="passkey-mode">
+    <!-- Passkey Authentication Page -->
+    <div id="passkeyPage">
+        <div class="passkey-container">
+            <div class="passkey-logo">🎮</div>
+            <h1>Demo Mode Access</h1>
+            <p class="subtitle">Enter 6-digit passkey to access demo mode</p>
+            
+            <form id="passkeyForm" onsubmit="verifyPasskey(event)">
+                <div class="passkey-input-group">
+                    <input 
+                        type="password"
+                        id="passkeyInput"
+                        class="passkey-input"
+                        placeholder="• • • • • •"
+                        maxlength="6"
+                        inputmode="numeric"
+                        autocomplete="off"
+                        autofocus
+                        required
+                    />
+                </div>
+                
+                <button type="submit" class="passkey-submit">
+                    Access Demo →
+                </button>
+            </form>
+            
+            <div id="passkeyAlert" class="passkey-alert"></div>
+            
+            <p class="passkey-hint">
+                <strong>Default passkey:</strong> 888888<br>
+                Configure in .env file (DEMO_PASSKEY)
+            </p>
+        </div>
+    </div>
+    
+    <!-- Game Page (Copy of index.html) -->
+    <div id="gamePage">
+        <div class="demo-badge">🔧 DEMO MODE</div>
+        
+        <!-- Header with Logo -->
+        <header class="header">
+            <div class="logo">ARAT</div>
+            <div class="header-controls">
+                <button id="shareBtn" class="btn-text" title="分享">
+                    <span data-i18n="share-btn">分享</span>
+                </button>
+                <button id="aboutBtn" class="btn-text" title="关于">
+                    <span data-i18n="about-btn">关于</span>
+                </button>
+                <button id="languageToggle" class="btn-lang">CN</button>
+            </div>
+        </header>
+
+        <!-- Main Container -->
+        <div class="container">
+            <!-- Landing Page -->
+            <div id="landingPage" class="landing-page">
+                <h1 data-i18n="game-title">字词接龙游戏 (Demo)</h1>
+                <p class="subtitle" data-i18n="game-subtitle">挑战你的词汇能力，找到连接词汇的桥梁！</p>
+                
+                <!-- Demo Puzzle Display -->
+                <div class="demo-section">
+                    <h2 data-i18n="demo-title">游戏演示</h2>
+                    <div class="puzzle-boxes demo-boxes">
+                        <div class="word-box">学</div>
+                        <div class="word-box answer-box">校</div>
+                        <div class="word-box">园</div>
+                    </div>
+                    <p class="demo-explanation" data-i18n="demo-explanation">
+                        找到连接所有词的字：学<strong>校</strong> + <strong>校</strong>园 = 校
+                    </p>
+                </div>
+
+                <!-- Instructions -->
+                <div class="instructions">
+                    <h3 data-i18n="how-to-play">如何游戏</h3>
+                    <ul>
+                        <li data-i18n="instruction-1">🎯 观察给出的2个字（中文）或3个单词（英文）</li>
+                        <li data-i18n="instruction-2">🧠 思考能连接它们的答案</li>
+                        <li data-i18n="instruction-3">⏱️ 5分钟内答对越多题，得分越高（每题2分）</li>
+                        <li data-i18n="instruction-4">⏭️ 不会的题目可以选择跳过</li>
+                        <li style="color: #f5576c;">🔧 <strong>Demo模式：答案会直接显示</strong></li>
+                    </ul>
+                </div>
+
+                <!-- Difficulty Slider -->
+                <div class="difficulty-selector">
+                    <label data-i18n="difficulty-label">选择难度：</label>
+                    <select id="difficultySelect" class="difficulty-select">
+                        <option value="easy" data-i18n="difficulty-easy">简单 (小学)</option>
+                        <option value="medium" data-i18n="difficulty-medium">中等 (初中)</option>
+                        <option value="hard" data-i18n="difficulty-hard">困难 (高中)</option>
+                        <option value="professional" data-i18n="difficulty-professional">专业 (大学)</option>
+                    </select>
+                </div>
+
+                <!-- Start Button -->
+                <button id="startGameBtn" class="btn-primary btn-large">
+                    <span data-i18n="start-game">开始游戏</span>
+                </button>
+            </div>
+
+            <!-- Game UI -->
+            <div id="gameUI" class="game-ui" style="display: none;">
+                <!-- Timer and Score -->
+                <div class="game-header">
+                    <div class="timer">
+                        <span data-i18n="time-left">剩余时间：</span>
+                        <span id="timeDisplay">05:00</span>
+                    </div>
+                    <div class="score">
+                        <span data-i18n="score">得分：</span>
+                        <span id="scoreDisplay">0</span>
+                    </div>
+                    <div class="correct-count">
+                        <span data-i18n="correct">答对：</span>
+                        <span id="correctDisplay">0</span>
+                    </div>
+                </div>
+
+                <!-- Puzzle Display -->
+                <div class="puzzle-container">
+                    <div class="puzzle-boxes" id="puzzleBoxes">
+                        <!-- Chinese Mode (2+1): A | B | Answer -->
+                        <div class="word-box" id="char1">?</div>
+                        <div class="word-box divider-box">
+                            <span style="font-size: 2rem; color: var(--text-light);">|</span>
+                        </div>
+                        <div class="word-box" id="char2">?</div>
+                        <div class="word-box divider-box">
+                            <span style="font-size: 2rem; color: var(--text-light);">|</span>
+                        </div>
+                        <div class="word-box answer-box">
+                            <input type="text" id="answerInput" maxlength="10" placeholder="?" />
+                        </div>
+                    </div>
+                    
+                    <!-- Answer Reveal (Demo Only) -->
+                    <div class="answer-reveal" id="answerReveal">
+                        <h4>✅ 正确答案 (Demo)</h4>
+                        <div class="answer-text" id="correctAnswerText">-</div>
+                    </div>
+                    
+                    <div class="hint-text" data-i18n="hint-instruction">
+                        输入能连接两侧词语的字/词
+                    </div>
+                </div>
+
+                <!-- Navigation Buttons -->
+                <div class="game-controls">
+                    <button id="submitAnswerBtn" class="btn-primary">
+                        <span data-i18n="submit">提交答案</span>
+                    </button>
+                    <button id="skipBtn" class="btn-secondary">
+                        <span data-i18n="skip">跳过此题</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>&copy; 2025 ARAT - Word Bridge Game (Demo Mode)</p>
+        </footer>
+
+        <!-- Modals (same as index.html) -->
+        <div id="captchaModal" class="modal">
+            <div class="modal-content score-modal">
+                <div class="score-header">
+                    <div class="score-icon">🎉</div>
+                    <h2 data-i18n="game-over">游戏结束！</h2>
+                    <div class="final-score">
+                        <span class="score-label" data-i18n="your-score">你的得分</span>
+                        <span class="score-value" id="finalScore">0</span>
+                    </div>
+                </div>
+                
+                <form id="captchaForm">
+                    <div class="form-group">
+                        <label data-i18n="nickname">昵称</label>
+                        <input type="text" id="playerNickname" required minlength="1" maxlength="20" placeholder="输入你的昵称" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label data-i18n="school">学校（可选）</label>
+                        <input type="text" id="playerSchool" maxlength="50" placeholder="输入学校名称" />
+                    </div>
+                    
+                    <div class="form-group">
+                        <label data-i18n="captcha-label">验证码</label>
+                        <div class="captcha-container">
+                            <img id="captchaImage" src="" alt="Captcha" class="captcha-img" />
+                            <button type="button" id="refreshCaptcha" class="btn-refresh">
+                                <span>🔄</span>
+                            </button>
+                        </div>
+                        <input type="text" id="captchaInput" required maxlength="4" placeholder="输入验证码" />
+                    </div>
+                    
+                    <button type="submit" class="btn-submit">
+                        <span data-i18n="submit">提交到排行榜</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div id="notificationModal" class="modal">
+            <div class="modal-content notification-content">
+                <p id="notificationMessage"></p>
+                <button id="notificationOk" class="btn-primary">
+                    <span data-i18n="ok">确定</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="aboutModal" class="modal">
+            <div class="modal-content about-modal">
+                <button class="modal-close" id="closeAboutModal">&times;</button>
+                <div class="about-content">
+                    <div class="about-logo">🐈‍⬛</div>
+                    <h2>ARAT</h2>
+                    <p class="about-tagline" data-i18n="about-tagline">字词接龙 · Word Bridge</p>
+                    <p class="version">v0.1.0</p>
+                    
+                    <div class="about-divider"></div>
+                    
+                    <div class="about-credits">
+                        <p class="credit-line">
+                            <span class="credit-label" data-i18n="about-made-by">Made by</span>
+                            <span class="credit-value">lyc9527</span>
+                        </p>
+                        <p class="credit-line">
+                            <span class="credit-label" data-i18n="about-from">From</span>
+                            <span class="credit-value">MTEL Team</span>
+                        </p>
+                        <p class="credit-line">
+                            <span class="credit-value">Educational Technology</span>
+                        </p>
+                        <p class="credit-line">
+                            <span class="credit-value">Beijing Normal University</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="shareModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 data-i18n="share-title">分享游戏</h2>
+                    <button class="modal-close" id="closeShareModal">&times;</button>
+                </div>
+                <div class="share-content">
+                    <p data-i18n="share-description">复制链接分享给朋友：</p>
+                    <div class="share-link-container">
+                        <input type="text" id="shareLinkInput" readonly class="share-link-input" />
+                        <button id="copyLinkBtn" class="btn-primary">
+                            <span data-i18n="copy">复制</span>
+                        </button>
+                    </div>
+                    <p class="share-success" id="shareSuccess" style="display: none;">
+                        <span data-i18n="copy-success">✓ 链接已复制到剪贴板</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/game.js"></script>
+    <script>
+        // Passkey Verification
+        const DEMO_PASSKEY = '888888';
+        
+        function verifyPasskey(e) {
+            e.preventDefault();
+            const input = document.getElementById('passkeyInput');
+            const alert = document.getElementById('passkeyAlert');
+            const passkey = input.value.trim();
+            
+            if (passkey === DEMO_PASSKEY) {
+                // Success - switch to game mode
+                sessionStorage.setItem('demoAuth', 'true');
+                document.body.classList.remove('passkey-mode');
+                document.body.classList.add('game-mode');
+                
+                // Enable demo features
+                window.isDemoMode = true;
+                
+            } else {
+                // Error
+                input.classList.add('error');
+                alert.className = 'passkey-alert error show';
+                alert.textContent = '❌ Invalid passkey. Try: 888888';
+                input.value = '';
+                setTimeout(() => {
+                    input.classList.remove('error');
+                }, 500);
+            }
+        }
+        
+        // Check if already authenticated
+        if (sessionStorage.getItem('demoAuth') === 'true') {
+            document.body.classList.remove('passkey-mode');
+            document.body.classList.add('game-mode');
+            window.isDemoMode = true;
+        }
+        
+        // Fix language toggle for demo page
+        if (document.getElementById('languageToggle')) {
+            const langBtn = document.getElementById('languageToggle');
+            langBtn.addEventListener('click', () => {
+                if (currentLang === 'zh') {
+                    currentLang = 'en';
+                    setLanguage('en');
+                    langBtn.textContent = 'EN';
+                } else {
+                    currentLang = 'zh';
+                    setLanguage('zh');
+                    langBtn.textContent = 'CN';
+                }
+            });
+        }
+        
+        // Override game.js functions to show answers in demo mode
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.isDemoMode) {
+                // Hook into displayPuzzle to show answer
+                const originalDisplayPuzzle = window.displayPuzzle;
+                if (originalDisplayPuzzle) {
+                    window.displayPuzzle = function(puzzle) {
+                        originalDisplayPuzzle(puzzle);
+                        // Show the answer
+                        const answerReveal = document.getElementById('correctAnswerText');
+                        if (answerReveal) {
+                            answerReveal.textContent = puzzle.answer || '?';
+                        }
+                    };
+                }
+            }
+        });
+    </script>
+</body>
+</html>

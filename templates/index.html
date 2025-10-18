@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARAT - 字词接龙游戏</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <!-- Header with Logo -->
+    <header class="header">
+        <div class="logo">ARAT</div>
+        <div class="header-controls">
+            <button id="shareBtn" class="btn-text" title="分享">
+                <span data-i18n="share-btn">分享</span>
+            </button>
+            <button id="aboutBtn" class="btn-text" title="关于">
+                <span data-i18n="about-btn">关于</span>
+            </button>
+            <button id="languageToggle" class="btn-lang">CN</button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Landing Page (Demo + Instructions) -->
+        <div id="landingPage" class="landing-page">
+            <h1 data-i18n="game-title">字词接龙游戏</h1>
+            <p class="subtitle" data-i18n="game-subtitle">挑战你的词汇能力，找到连接词汇的桥梁！</p>
+            
+            <!-- Demo Puzzle Display -->
+            <div class="demo-section">
+                <h2 data-i18n="demo-title">游戏演示</h2>
+                    <div class="puzzle-boxes demo-boxes">
+                        <div class="word-box">学</div>
+                        <div class="word-box divider-box">
+                            <span style="font-size: 2rem; color: var(--text-light);">|</span>
+                        </div>
+                        <div class="word-box">园</div>
+                    </div>
+                    <p class="demo-explanation" data-i18n="demo-explanation">
+                        找到能连接这两个字的答案：学 + <strong>校</strong> + 园 = 学<strong>校</strong>、<strong>校</strong>园
+                    </p>
+            </div>
+
+            <!-- Instructions -->
+            <div class="instructions">
+                <h3 data-i18n="how-to-play">如何游戏</h3>
+                <ul>
+                    <li data-i18n="instruction-1">🎯 观察给出的2个字（中文）或3个单词（英文）</li>
+                    <li data-i18n="instruction-2">🧠 思考能连接它们的答案</li>
+                    <li data-i18n="instruction-3">⏱️ 5分钟内答对越多题，得分越高（每题2分）</li>
+                    <li data-i18n="instruction-4">⏭️ 不会的题目可以选择跳过</li>
+                </ul>
+            </div>
+
+            <!-- Difficulty Slider -->
+            <div class="difficulty-selector">
+                <label data-i18n="difficulty-label">选择难度：</label>
+                <select id="difficultySelect" class="difficulty-select">
+                    <option value="easy" data-i18n="difficulty-easy">简单 (小学)</option>
+                    <option value="medium" data-i18n="difficulty-medium">中等 (初中)</option>
+                    <option value="hard" data-i18n="difficulty-hard">困难 (高中)</option>
+                    <option value="professional" data-i18n="difficulty-professional">专业 (大学)</option>
+                </select>
+            </div>
+
+            <!-- Start Button -->
+            <button id="startGameBtn" class="btn-primary btn-large">
+                <span data-i18n="start-game">开始游戏</span>
+            </button>
+        </div>
+
+        <!-- Game UI -->
+        <div id="gameUI" class="game-ui" style="display: none;">
+            <!-- Timer and Score -->
+            <div class="game-header">
+                <div class="timer">
+                    <span data-i18n="time-left">剩余时间：</span>
+                    <span id="timeDisplay">05:00</span>
+                </div>
+                <div class="score">
+                    <span data-i18n="score">得分：</span>
+                    <span id="scoreDisplay">0</span>
+                </div>
+                <div class="correct-count">
+                    <span data-i18n="correct">答对：</span>
+                    <span id="correctDisplay">0</span>
+                </div>
+            </div>
+
+            <!-- Puzzle Display -->
+            <div class="puzzle-container">
+                <div class="puzzle-boxes" id="puzzleBoxes">
+                    <!-- Chinese Mode (2+1): A | B | Answer -->
+                    <div class="word-box" id="char1">?</div>
+                    <div class="word-box divider-box">
+                        <span style="font-size: 2rem; color: var(--text-light);">|</span>
+                    </div>
+                    <div class="word-box" id="char2">?</div>
+                    <div class="word-box divider-box">
+                        <span style="font-size: 2rem; color: var(--text-light);">|</span>
+                    </div>
+                    <div class="word-box answer-box">
+                        <input type="text" id="answerInput" maxlength="10" placeholder="?" />
+                    </div>
+                </div>
+                
+                <div class="hint-text" data-i18n="hint-instruction">
+                    输入能连接两侧词语的字/词
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="game-controls">
+                <button id="submitAnswerBtn" class="btn-primary">
+                    <span data-i18n="submit">提交答案</span>
+                </button>
+                <button id="skipBtn" class="btn-secondary">
+                    <span data-i18n="skip">跳过此题</span>
+                </button>
+            </div>
+
+            <!-- Difficulty Change Warning -->
+            <div class="difficulty-warning" style="display: none;">
+                <p data-i18n="difficulty-warning">⚠️ 改变难度将重置游戏进度</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Captcha Modal -->
+    <div id="captchaModal" class="modal">
+        <div class="modal-content score-modal">
+            <div class="score-header">
+                <div class="score-icon">🎉</div>
+                <h2 data-i18n="game-over">游戏结束！</h2>
+                <div class="final-score">
+                    <span class="score-label" data-i18n="your-score">你的得分</span>
+                    <span class="score-value" id="finalScore">0</span>
+                </div>
+            </div>
+            
+            <form id="captchaForm">
+                <div class="form-group">
+                    <label data-i18n="nickname">昵称</label>
+                    <input type="text" id="playerNickname" required minlength="1" maxlength="20" placeholder="输入你的昵称" />
+                </div>
+                
+                <div class="form-group">
+                    <label data-i18n="school">学校（可选）</label>
+                    <input type="text" id="playerSchool" maxlength="50" placeholder="输入学校名称" />
+                </div>
+                
+                <div class="form-group">
+                    <label data-i18n="captcha-label">验证码</label>
+                    <div class="captcha-container">
+                        <img id="captchaImage" src="" alt="Captcha" class="captcha-img" />
+                        <button type="button" id="refreshCaptcha" class="btn-refresh">
+                            <span>🔄</span>
+                        </button>
+                    </div>
+                    <input type="text" id="captchaInput" required maxlength="4" placeholder="输入验证码" />
+                </div>
+                
+                <button type="submit" class="btn-submit">
+                    <span data-i18n="submit">提交到排行榜</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Notification Modal -->
+    <div id="notificationModal" class="modal">
+        <div class="modal-content notification-content">
+            <p id="notificationMessage"></p>
+            <button id="notificationOk" class="btn-primary">
+                <span data-i18n="ok">确定</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+        <div id="aboutModal" class="modal">
+            <div class="modal-content about-modal">
+                <button class="modal-close" id="closeAboutModal">&times;</button>
+                <div class="about-content">
+                    <div class="about-logo">🐈‍⬛</div>
+                    <h2>ARAT</h2>
+                    <p class="about-tagline" data-i18n="about-tagline">字词接龙 · Word Bridge</p>
+                    <p class="version">v0.1.0</p>
+                    
+                    <div class="about-divider"></div>
+                    
+                    <div class="about-credits">
+                        <p class="credit-line">
+                            <span class="credit-label" data-i18n="about-made-by">Made by</span>
+                            <span class="credit-value">lyc9527</span>
+                        </p>
+                        <p class="credit-line">
+                            <span class="credit-label" data-i18n="about-from">From</span>
+                            <span class="credit-value">MTEL Team</span>
+                        </p>
+                        <p class="credit-line">
+                            <span class="credit-value">Educational Technology</span>
+                        </p>
+                        <p class="credit-line">
+                            <span class="credit-value">Beijing Normal University</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    <!-- Share Modal -->
+    <div id="shareModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 data-i18n="share-title">分享游戏</h2>
+                <button class="modal-close" id="closeShareModal">&times;</button>
+            </div>
+            <div class="share-content">
+                <p data-i18n="share-description">复制链接分享给朋友：</p>
+                <div class="share-link-container">
+                    <input type="text" id="shareLinkInput" readonly class="share-link-input" />
+                    <button id="copyLinkBtn" class="btn-primary">
+                        <span data-i18n="copy">复制</span>
+                    </button>
+                </div>
+                <p class="share-success" id="shareSuccess" style="display: none;">
+                    <span data-i18n="copy-success">✓ 链接已复制到剪贴板</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer (Simplified) -->
+    <footer class="footer">
+        <p>&copy; 2025 ARAT - Word Bridge Game</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="/static/js/i18n.js"></script>
+    <script src="/static/js/game.js"></script>
+</body>
+</html>
+

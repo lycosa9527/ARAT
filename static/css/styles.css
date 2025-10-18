@@ -1,0 +1,1214 @@
+/**
+ * ARAT - 字词接龙游戏 - 样式表
+ * 
+ * 设计理念: Clean, Elegant, Professional
+ * 参考: MindGraph node palette button effects
+ * 
+ * Author: lyc9527
+ * Team: MTEL Team from Educational Technology, Beijing Normal University
+ */
+
+/* ============================================================================
+   全局样式 & 重置
+   ============================================================================ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    /* 颜色系统 - 优雅的渐变色调 */
+    --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --bg-color: #f5f7fa;
+    --text-color: #2d3748;
+    --text-light: #718096;
+    --border-color: #e2e8f0;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+    --shadow-xl: 0 20px 25px rgba(0,0,0,0.1), 0 10px 10px rgba(0,0,0,0.04);
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ============================================================================
+   Header
+   ============================================================================ */
+
+.header {
+    background: white;
+    box-shadow: var(--shadow-sm);
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.logo {
+    font-size: 1.8rem;
+    font-weight: 700;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+}
+
+.header-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.btn-text {
+    padding: 0.5rem 1rem;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-color);
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-text:hover {
+    background: var(--bg-color);
+    border-color: #667eea;
+    color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-text:active {
+    transform: translateY(0);
+}
+
+.btn-lang {
+    padding: 0.5rem 0.75rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: white;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+    min-width: 48px;
+    text-align: center;
+}
+
+.btn-lang:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-lang:active {
+    transform: translateY(0);
+}
+
+/* ============================================================================
+   Container & Layout
+   ============================================================================ */
+
+.container {
+    flex: 1;
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+    width: 100%;
+}
+
+/* ============================================================================
+   Landing Page
+   ============================================================================ */
+
+.landing-page {
+    text-align: center;
+    animation: fadeIn 0.6s ease-in;
+}
+
+.landing-page h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: var(--text-light);
+    margin-bottom: 3rem;
+}
+
+.demo-section {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 600px;
+    box-shadow: var(--shadow-md);
+}
+
+.demo-boxes {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.demo-explanation {
+    color: var(--text-light);
+    font-size: 1rem;
+    margin-top: 1rem;
+}
+
+.demo-explanation strong {
+    color: #667eea;
+    font-weight: 600;
+}
+
+.instructions {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 600px;
+    box-shadow: var(--shadow-md);
+    text-align: left;
+}
+
+.instructions h3 {
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.instructions ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.instructions li {
+    padding: 0.5rem 0;
+    color: var(--text-light);
+}
+
+.difficulty-selector {
+    margin: 2rem auto;
+    max-width: 400px;
+}
+
+.difficulty-selector label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.difficulty-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.difficulty-select:hover {
+    border-color: #667eea;
+}
+
+.difficulty-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* ============================================================================
+   Game UI
+   ============================================================================ */
+
+.game-ui {
+    animation: fadeIn 0.6s ease-in;
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-around;
+    gap: 2rem;
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.timer, .score, .correct-count {
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+#timeDisplay {
+    color: #f5576c;
+}
+
+#scoreDisplay {
+    color: #00f2fe;
+}
+
+#correctDisplay {
+    color: #4facfe;
+}
+
+.puzzle-container {
+    background: white;
+    border-radius: 24px;
+    padding: 3rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    
+    /* Modern shadow with depth */
+    box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.08),
+        0 4px 16px rgba(0, 0, 0, 0.05),
+        0 1px 4px rgba(0, 0, 0, 0.03);
+    
+    /* Subtle background gradient */
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+    
+    /* Animated border glow */
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    transition: all 0.3s ease;
+}
+
+/* Add subtle glow on hover */
+.puzzle-container:hover {
+    box-shadow: 
+        0 15px 50px rgba(102, 126, 234, 0.12),
+        0 8px 24px rgba(118, 75, 162, 0.08),
+        0 2px 8px rgba(0, 0, 0, 0.05);
+    border-color: rgba(102, 126, 234, 0.2);
+}
+
+/* Animated background particles */
+.puzzle-container::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+        circle,
+        rgba(102, 126, 234, 0.03) 0%,
+        transparent 50%
+    );
+    animation: rotate 20s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes rotate {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.puzzle-boxes {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.word-box {
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    font-weight: 600;
+    position: relative;
+    color: white;
+    border-radius: 16px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: fadeInBounce 0.6s ease-out forwards;
+    opacity: 0;
+    transform: translateY(30px) scale(0.9);
+    
+    /* Modern gradient background with animation */
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+    background-size: 200% 200%;
+    animation: fadeInBounce 0.6s ease-out forwards, gradientShift 4s ease infinite;
+    
+    /* Modern shadow with glow */
+    box-shadow: 
+        0 4px 6px rgba(102, 126, 234, 0.3),
+        0 8px 16px rgba(118, 75, 162, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Divider box - no background, just text */
+.divider-box {
+    background: transparent;
+    box-shadow: none;
+    animation: fadeInBounce 0.6s ease-out forwards;
+    width: 60px;
+}
+
+/* Staggered animation for multiple boxes */
+.word-box:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.word-box:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.word-box:nth-child(3) {
+    animation-delay: 0.2s;
+}
+
+.word-box:nth-child(4) {
+    animation-delay: 0.3s;
+}
+
+.word-box:nth-child(5) {
+    animation-delay: 0.4s;
+}
+
+/* Hover effect with 3D transform */
+.word-box:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 
+        0 8px 16px rgba(102, 126, 234, 0.4),
+        0 16px 32px rgba(118, 75, 162, 0.3),
+        0 0 40px rgba(102, 126, 234, 0.2);
+}
+
+/* Floating animation when idle */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.word-box {
+    animation: 
+        fadeInBounce 0.6s ease-out forwards,
+        gradientShift 4s ease infinite,
+        float 3s ease-in-out infinite;
+}
+
+/* Modern entrance animation */
+@keyframes fadeInBounce {
+    0% {
+        opacity: 0;
+        transform: translateY(30px) scale(0.9);
+    }
+    60% {
+        opacity: 1;
+        transform: translateY(-5px) scale(1.02);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Gradient animation */
+@keyframes gradientShift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+.answer-box {
+    background: white;
+    position: relative;
+    overflow: hidden;
+    
+    /* Modern animated border */
+    border: 3px solid transparent;
+    background-image: 
+        linear-gradient(white, white),
+        linear-gradient(135deg, #667eea, #764ba2, #667eea);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+    background-size: 100% 100%, 200% 200%;
+    animation: 
+        fadeInBounce 0.6s ease-out forwards,
+        borderGlow 3s ease infinite,
+        float 3s ease-in-out infinite;
+    
+    /* Pulse effect */
+    box-shadow: 
+        0 0 20px rgba(102, 126, 234, 0.3),
+        inset 0 0 20px rgba(102, 126, 234, 0.05);
+}
+
+/* Animated border glow */
+@keyframes borderGlow {
+    0%, 100% {
+        background-position: 0% 50%, 0% 50%;
+        box-shadow: 
+            0 0 20px rgba(102, 126, 234, 0.3),
+            inset 0 0 20px rgba(102, 126, 234, 0.05);
+    }
+    50% {
+        background-position: 0% 50%, 100% 50%;
+        box-shadow: 
+            0 0 30px rgba(102, 126, 234, 0.5),
+            inset 0 0 30px rgba(102, 126, 234, 0.1);
+    }
+}
+
+.answer-box input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+    position: relative;
+    z-index: 1;
+}
+
+.answer-box input:focus {
+    outline: none;
+}
+
+/* Focus state with enhanced glow */
+.answer-box:has(input:focus) {
+    box-shadow: 
+        0 0 40px rgba(102, 126, 234, 0.6),
+        0 0 20px rgba(102, 126, 234, 0.4),
+        inset 0 0 30px rgba(102, 126, 234, 0.15);
+    transform: translateY(-2px) scale(1.02);
+}
+
+/* Correct answer - Success animation */
+.answer-box.correct {
+    background-image: 
+        linear-gradient(135deg, #4facfe20 0%, #00f2fe20 100%),
+        linear-gradient(135deg, #4facfe, #00f2fe);
+    animation: successPulse 0.8s ease-in-out, successGlow 1s ease-out;
+    
+    box-shadow: 
+        0 0 40px rgba(79, 172, 254, 0.6),
+        0 8px 32px rgba(0, 242, 254, 0.4),
+        inset 0 0 30px rgba(79, 172, 254, 0.3);
+}
+
+@keyframes successPulse {
+    0%, 100% { 
+        transform: scale(1); 
+    }
+    25% { 
+        transform: scale(1.1) rotate(2deg); 
+    }
+    75% { 
+        transform: scale(1.05) rotate(-2deg); 
+    }
+}
+
+@keyframes successGlow {
+    0% {
+        box-shadow: 
+            0 0 40px rgba(79, 172, 254, 0.6),
+            0 8px 32px rgba(0, 242, 254, 0.4);
+    }
+    50% {
+        box-shadow: 
+            0 0 60px rgba(79, 172, 254, 0.9),
+            0 12px 48px rgba(0, 242, 254, 0.6),
+            0 0 100px rgba(79, 172, 254, 0.3);
+    }
+    100% {
+        box-shadow: 
+            0 0 40px rgba(79, 172, 254, 0.6),
+            0 8px 32px rgba(0, 242, 254, 0.4);
+    }
+}
+
+/* Incorrect answer - Shake with red glow */
+.answer-box.incorrect {
+    background-image: 
+        linear-gradient(white, white),
+        linear-gradient(135deg, #f5576c, #ff6b7a);
+    animation: shakeError 0.6s ease-in-out, errorGlow 0.5s ease-out;
+    
+    box-shadow: 
+        0 0 30px rgba(245, 87, 108, 0.5),
+        0 4px 16px rgba(245, 87, 108, 0.3);
+}
+
+@keyframes shakeError {
+    0%, 100% { 
+        transform: translateX(0) rotate(0deg); 
+    }
+    20% { 
+        transform: translateX(-12px) rotate(-2deg); 
+    }
+    40% { 
+        transform: translateX(12px) rotate(2deg); 
+    }
+    60% { 
+        transform: translateX(-8px) rotate(-1deg); 
+    }
+    80% { 
+        transform: translateX(8px) rotate(1deg); 
+    }
+}
+
+@keyframes errorGlow {
+    0%, 100% {
+        box-shadow: 
+            0 0 30px rgba(245, 87, 108, 0.5),
+            0 4px 16px rgba(245, 87, 108, 0.3);
+    }
+    50% {
+        box-shadow: 
+            0 0 50px rgba(245, 87, 108, 0.8),
+            0 8px 24px rgba(245, 87, 108, 0.5);
+    }
+}
+
+.hint-text {
+    text-align: center;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.game-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.game-controls button {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* ============================================================================
+   Buttons (参考MindGraph样式)
+   ============================================================================ */
+
+.btn-primary, .btn-secondary, .btn-small, .btn-large {
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background-size: 200% 200%;
+    color: white;
+    box-shadow: 
+        0 4px 12px rgba(102, 126, 234, 0.3),
+        0 2px 6px rgba(118, 75, 162, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Shimmer effect */
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    transition: left 0.5s ease;
+}
+
+.btn-primary:hover::before {
+    left: 100%;
+}
+
+.btn-primary:hover {
+    transform: translateY(-3px);
+    background-position: 100% 50%;
+    box-shadow: 
+        0 8px 24px rgba(102, 126, 234, 0.4),
+        0 4px 12px rgba(118, 75, 162, 0.3),
+        0 0 40px rgba(102, 126, 234, 0.2);
+    animation: buttonPulse 0.6s ease;
+}
+
+.btn-primary:active {
+    transform: translateY(-1px) scale(0.98);
+    box-shadow: 
+        0 2px 8px rgba(102, 126, 234, 0.3),
+        0 1px 4px rgba(118, 75, 162, 0.2);
+}
+
+@keyframes buttonPulse {
+    0%, 100% { 
+        transform: translateY(-3px) scale(1); 
+    }
+    50% { 
+        transform: translateY(-3px) scale(1.02); 
+    }
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-secondary {
+    background: white;
+    color: var(--text-color);
+    border: 2px solid var(--border-color);
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-large {
+    padding: 1rem 3rem;
+    font-size: 1.2rem;
+}
+
+.btn-small {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+/* ============================================================================
+   Modals
+   ============================================================================ */
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: var(--shadow-xl);
+    animation: slideUp 0.3s ease-out;
+}
+
+/* Score Submission Modal */
+.score-modal {
+    max-width: 450px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.score-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2.5rem 2rem;
+    text-align: center;
+    color: white;
+}
+
+.score-icon {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+    animation: bounce 1s ease infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+
+.score-header h2 {
+    margin: 0 0 1rem 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.final-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.score-label {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.score-value {
+    font-size: 3.5rem;
+    font-weight: 700;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.score-modal form {
+    padding: 2rem;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-content h2 {
+    margin-bottom: 1.5rem;
+    color: var(--text-color);
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: var(--bg-color);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-1px);
+}
+
+.form-group input::placeholder {
+    color: var(--text-light);
+}
+
+.captcha-container {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    align-items: center;
+}
+
+.captcha-img {
+    flex: 1;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    height: 50px;
+    object-fit: cover;
+}
+
+.btn-refresh {
+    width: 50px;
+    height: 50px;
+    padding: 0;
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    background: white;
+    cursor: pointer;
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-refresh:hover {
+    background: var(--bg-color);
+    border-color: #667eea;
+    transform: rotate(180deg);
+}
+
+.btn-refresh:active {
+    transform: rotate(180deg) scale(0.95);
+}
+
+.btn-submit {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-submit:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-submit:active {
+    transform: translateY(0);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.captcha-image {
+    width: 100%;
+    max-width: 200px;
+    height: 80px;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.modal-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+/* ============================================================================
+   Footer
+   ============================================================================ */
+
+.footer {
+    background: white;
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-light);
+    font-size: 0.85rem;
+    box-shadow: 0 -2px 4px rgba(0,0,0,0.05);
+    margin-top: 2rem;
+}
+
+/* ============================================================================
+   About & Share Modals
+   ============================================================================ */
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.modal-header h2 {
+    margin: 0;
+    color: var(--text-color);
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-light);
+    transition: all 0.2s ease;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+}
+
+.modal-close:hover {
+    color: var(--text-color);
+    background: var(--bg-color);
+    transform: rotate(90deg);
+}
+
+/* About Modal - Elegant Design */
+.about-modal {
+    max-width: 400px;
+    padding: 3rem 2rem;
+}
+
+.about-content {
+    text-align: center;
+}
+
+.about-logo {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    animation: float 3s ease-in-out infinite;
+}
+
+.about-content h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.about-tagline {
+    color: var(--text-light);
+    font-size: 1rem;
+    margin: 0 0 0.5rem 0;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+}
+
+.version {
+    color: var(--text-light);
+    font-size: 0.85rem;
+    margin: 0;
+    font-family: 'Courier New', monospace;
+}
+
+.about-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-color), transparent);
+    margin: 2rem 0;
+}
+
+.about-credits {
+    text-align: center;
+}
+
+.credit-line {
+    margin: 0.75rem 0;
+    line-height: 1.6;
+}
+
+.credit-label {
+    color: var(--text-light);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+}
+
+.credit-value {
+    color: var(--text-color);
+    font-size: 0.95rem;
+    font-weight: 400;
+}
+
+.credit-line:has(.credit-label) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.share-content {
+    text-align: center;
+}
+
+.share-content p {
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.share-link-container {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.share-link-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: var(--bg-color);
+    color: var(--text-color);
+}
+
+.share-link-input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.share-success {
+    color: #4facfe;
+    font-weight: 600;
+    margin-top: 1rem;
+}
+
+/* ============================================================================
+   Animations
+   ============================================================================ */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Sparkle effect for correct answers */
+@keyframes sparkle {
+    0%, 100% {
+        opacity: 0;
+        transform: scale(0) rotate(0deg);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1) rotate(180deg);
+    }
+}
+
+/* Rainbow shimmer */
+@keyframes rainbowShimmer {
+    0% {
+        filter: hue-rotate(0deg);
+    }
+    100% {
+        filter: hue-rotate(360deg);
+    }
+}
+
+/* ============================================================================
+   Responsive Design
+   ============================================================================ */
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0 1rem;
+    }
+    
+    .word-box {
+        width: 80px;
+        height: 80px;
+        font-size: 2rem;
+    }
+    
+    .puzzle-boxes {
+        gap: 0.5rem;
+    }
+    
+    .game-header {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .game-controls {
+        flex-direction: column;
+        max-width: 100%;
+    }
+    
+    .game-controls button {
+        width: 100%;
+        min-width: auto;
+    }
+}
+
