@@ -66,6 +66,12 @@ async function startGameSession() {
     gameState.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     gameState.difficulty = document.getElementById('difficultySelect').value;
     
+    console.log('[startGameSession] Starting new game session:', {
+        sessionId: gameState.sessionId,
+        difficulty: gameState.difficulty,
+        language: gameState.language
+    });
+    
     try {
         const result = await apiCall('/game/start_session', {
             method: 'POST',
@@ -77,9 +83,18 @@ async function startGameSession() {
             })
         });
         
+        console.log('[startGameSession] Session started, received:', result);
+        
         // 获取第一题
         gameState.currentPuzzle = result.first_puzzle;
         gameState.history.push(gameState.currentPuzzle);
+        
+        console.log('[startGameSession] First puzzle:', {
+            puzzle: gameState.currentPuzzle,
+            hasAnswer: 'answer' in gameState.currentPuzzle,
+            answerValue: gameState.currentPuzzle?.answer,
+            puzzle_id: gameState.currentPuzzle?.puzzle_id
+        });
         
         // 显示题目
         displayPuzzle(gameState.currentPuzzle);
@@ -101,11 +116,20 @@ async function startGameSession() {
 
 async function getNextPuzzle() {
     try {
+        console.log('[getNextPuzzle] Requesting next puzzle for session:', gameState.sessionId);
+        
         const puzzle = await apiCall('/game/next_puzzle', {
             method: 'POST',
             body: JSON.stringify({
                 session_id: gameState.sessionId
             })
+        });
+        
+        console.log('[getNextPuzzle] Received puzzle:', {
+            puzzle,
+            hasAnswer: 'answer' in puzzle,
+            answerValue: puzzle.answer,
+            puzzle_id: puzzle.puzzle_id
         });
         
         gameState.currentPuzzle = puzzle;
@@ -117,12 +141,20 @@ async function getNextPuzzle() {
         document.getElementById('answerInput').value = '';
         
     } catch (error) {
-        console.error('Failed to get next puzzle:', error);
+        console.error('[getNextPuzzle] Failed to get next puzzle:', error);
         showNotification('获取题目失败，请重试');
     }
 }
 
 window.displayPuzzle = function displayPuzzle(puzzle) {
+    console.log('[displayPuzzle] Displaying puzzle:', {
+        puzzle,
+        hasAnswer: 'answer' in puzzle,
+        answerValue: puzzle.answer,
+        puzzle_id: puzzle.puzzle_id,
+        language: gameState.language
+    });
+    
     if (gameState.language === 'zh') {
         // 中文模式 (2+1): A | B | Answer (answer always on the right)
         const puzzleBoxes = document.getElementById('puzzleBoxes');
@@ -175,12 +207,20 @@ window.displayPuzzle = function displayPuzzle(puzzle) {
 
 // 显示正确答案并继续下一题
 async function showCorrectAnswerAndContinue(isCorrect = false, correctAnswer) {
+    console.log('[showCorrectAnswerAndContinue] Called with:', {
+        isCorrect,
+        correctAnswer,
+        puzzle_id: gameState.currentPuzzle?.puzzle_id,
+        currentPuzzle: gameState.currentPuzzle
+    });
+    
     const answerInput = document.getElementById('answerInput');
     const answerInput2 = document.getElementById('answerInput2');
     const answerBoxes = document.querySelectorAll('.answer-box');
     
     // 如果没有传入正确答案，尝试从API获取
     if (!correctAnswer) {
+        console.warn('[showCorrectAnswerAndContinue] No correctAnswer provided, fetching from API...');
         try {
             const result = await apiCall('/game/get_answer', {
                 method: 'POST',
@@ -188,15 +228,23 @@ async function showCorrectAnswerAndContinue(isCorrect = false, correctAnswer) {
                     puzzle_id: gameState.currentPuzzle?.puzzle_id
                 })
             });
+            console.log('[showCorrectAnswerAndContinue] API response:', result);
             correctAnswer = result.answer;
+            console.log('[showCorrectAnswerAndContinue] Extracted answer:', correctAnswer);
         } catch (error) {
-            console.error('Failed to get correct answer:', error);
+            console.error('[showCorrectAnswerAndContinue] Failed to get correct answer from API:', error);
             correctAnswer = '?'; // 后备方案
         }
     }
     
     if (!correctAnswer || correctAnswer === '?') {
-        console.error('Failed to retrieve correct answer for puzzle:', gameState.currentPuzzle?.puzzle_id);
+        console.error('[showCorrectAnswerAndContinue] CRITICAL: Failed to retrieve correct answer!', {
+            puzzle_id: gameState.currentPuzzle?.puzzle_id,
+            correctAnswer,
+            currentPuzzle: gameState.currentPuzzle
+        });
+    } else {
+        console.log('[showCorrectAnswerAndContinue] Using correct answer:', correctAnswer);
     }
     
     // 禁用提交和跳过按钮
@@ -254,6 +302,12 @@ async function submitAnswer() {
     }
     
     try {
+        console.log('[submitAnswer] Validating answer:', {
+            puzzle_id: gameState.currentPuzzle.puzzle_id,
+            userAnswer,
+            currentPuzzle: gameState.currentPuzzle
+        });
+        
         const result = await apiCall('/game/validate', {
             method: 'POST',
             body: JSON.stringify({
@@ -263,16 +317,26 @@ async function submitAnswer() {
             })
         });
         
+        console.log('[submitAnswer] Validation API response:', result);
+        
         const answerBox = document.querySelector('.answer-box');
         
         // 获取正确答案 - 确保有值
         const correctAnswer = result.correct_answer || result.answer;
         
+        console.log('[submitAnswer] Extracted correct answer:', {
+            correctAnswer,
+            from_correct_answer_field: result.correct_answer,
+            from_answer_field: result.answer,
+            result_correct: result.correct
+        });
+        
         if (!correctAnswer) {
-            console.warn('Validation response missing correct_answer field:', result);
+            console.warn('[submitAnswer] WARNING: Validation response missing correct_answer field!', result);
         }
         
         if (result.correct) {
+            console.log('[submitAnswer] Answer is CORRECT!');
             // 答案正确
             const answerBoxes = document.querySelectorAll('.answer-box');
             answerBoxes.forEach(box => box.classList.add('correct'));
@@ -283,14 +347,17 @@ async function submitAnswer() {
             showNotification(t('correct-answer'));
             
             // 显示正确答案2秒后继续
+            console.log('[submitAnswer] Calling showCorrectAnswerAndContinue with correctAnswer:', correctAnswer);
             showCorrectAnswerAndContinue(true, correctAnswer);
             
         } else {
+            console.log('[submitAnswer] Answer is INCORRECT');
             // 答案错误 - 显示错误提示，然后显示正确答案
             const answerBoxes = document.querySelectorAll('.answer-box');
             answerBoxes.forEach(box => box.classList.add('incorrect'));
             
             // 500ms后显示正确答案
+            console.log('[submitAnswer] Will show correct answer after 500ms:', correctAnswer);
             setTimeout(() => {
                 showCorrectAnswerAndContinue(false, correctAnswer);
             }, 500);
@@ -590,9 +657,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 跳过按钮
     document.getElementById('skipBtn').addEventListener('click', async () => {
+        console.log('[skipBtn] Skip button clicked', {
+            isPlaying: gameState.isPlaying,
+            currentPuzzle: gameState.currentPuzzle,
+            puzzle_id: gameState.currentPuzzle?.puzzle_id
+        });
+        
         if (gameState.isPlaying && gameState.currentPuzzle) {
             // 获取正确答案然后显示
             try {
+                console.log('[skipBtn] Fetching answer from API for puzzle:', gameState.currentPuzzle.puzzle_id);
                 const result = await apiCall('/game/get_answer', {
                     method: 'POST',
                     body: JSON.stringify({
@@ -600,13 +674,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                 });
                 
+                console.log('[skipBtn] API response:', result);
+                console.log('[skipBtn] Extracted answer:', result.answer);
+                
                 // 直接传递答案显示
+                console.log('[skipBtn] Calling showCorrectAnswerAndContinue with answer:', result.answer);
                 showCorrectAnswerAndContinue(false, result.answer);
             } catch (error) {
-                console.error('Failed to get answer:', error);
+                console.error('[skipBtn] Failed to get answer:', error);
                 // 即使失败也继续下一题
                 getNextPuzzle();
             }
+        } else {
+            console.warn('[skipBtn] Skip button clicked but game not ready:', {
+                isPlaying: gameState.isPlaying,
+                hasPuzzle: !!gameState.currentPuzzle
+            });
         }
     });
     
