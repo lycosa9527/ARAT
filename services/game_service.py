@@ -16,11 +16,14 @@ import json
 import uuid
 import time
 import asyncio
-from typing import Dict, Optional
+import random
+from typing import Dict, Optional, Set
 from collections import deque
+from sqlalchemy.orm import Session
 
 from services.llm_service import llm_service
 from config.logging_config import get_logger
+from config.database import get_db, PuzzleInventory
 
 logger = get_logger('app')
 llm_logger = get_logger('llm')
@@ -52,6 +55,11 @@ GENERATE_PUZZLE_SYSTEM_PROMPT_CHINESE = """你是一个中文词语专家，擅�
 - 答案在右侧
 
 所有词语都应该是常见的、有意义的词。
+
+**关键规则 (CRITICAL):**
+- 答案字必须与字A和字B都不相同
+- 字A、字B、答案三个字必须各不相同
+- 例如: 如果字A="学", 字B="园", 答案不能是"学"或"园", 必须是第三个字如"校"
 
 难度等级说明 (按教育阶段划分):
 - easy (小学水平): 使用小学1-6年级常见词语，日常生活用语 (如: 学校、高中、天地、天气)
@@ -87,6 +95,11 @@ Your task is to generate a word association puzzle with 4 words (Word A, B, C, a
 1. A + D can form a valid compound word or common phrase
 2. B + D can form a valid compound word or common phrase  
 3. C + D can form a valid compound word or common phrase
+
+**CRITICAL Rule:**
+- The answer word D must be DIFFERENT from words A, B, and C
+- All four words (A, B, C, Answer) must be distinct
+- Example: If A="sun", B="rain", C="bed", answer cannot be "sun", "rain", or "bed" - it must be a fourth word like "light"
 
 Difficulty Levels (by education stage):
 - easy (Elementary School): Common everyday words familiar to K-6 students (e.g., "sun-light", "rain-bow", "bed-room")
@@ -162,6 +175,55 @@ Return in JSON format:
 Return ONLY the JSON, no other text."""
 
 # ============================================================================
+# Puzzle Validation Functions
+# ============================================================================
+
+def validate_puzzle_uniqueness(puzzle_data: Dict, language: str) -> bool:
+    """
+    Validate that answer is different from all input characters/words
+    
+    Args:
+        puzzle_data: Parsed puzzle data
+        language: 'zh' or 'en'
+    
+    Returns:
+        bool: True if valid (answer is unique), False otherwise
+    """
+    if language == 'zh':
+        char1 = puzzle_data.get('char1', '')
+        char2 = puzzle_data.get('char2', '')
+        answer = puzzle_data.get('answer', '')
+        
+        # Check if answer is same as any input character
+        if answer == char1 or answer == char2:
+            logger.warning(f"Invalid puzzle: answer='{answer}' matches input (char1='{char1}', char2='{char2}')")
+            return False
+        
+        # Check if char1 == char2 (also invalid)
+        if char1 == char2:
+            logger.warning(f"Invalid puzzle: char1 and char2 are the same ('{char1}')")
+            return False
+        
+        return True
+    else:  # English
+        word1 = puzzle_data.get('word1', '').lower()
+        word2 = puzzle_data.get('word2', '').lower()
+        word3 = puzzle_data.get('word3', '').lower()
+        answer = puzzle_data.get('answer', '').lower()
+        
+        # Check if answer is same as any input word
+        if answer in [word1, word2, word3]:
+            logger.warning(f"Invalid puzzle: answer='{answer}' matches input ({word1}, {word2}, {word3})")
+            return False
+        
+        # Check if any input words are duplicated
+        if len(set([word1, word2, word3])) < 3:
+            logger.warning(f"Invalid puzzle: duplicate input words ({word1}, {word2}, {word3})")
+            return False
+        
+        return True
+
+# ============================================================================
 # Game Service Implementation
 # ============================================================================
 
@@ -182,13 +244,16 @@ class GameService:
         # 会话时间戳 (用于TTL清理)
         self.session_timestamps: Dict[str, float] = {}
         
+        # 每个会话已使用的词汇 (防止重复)
+        self.session_used_words: Dict[str, Set[str]] = {}
+        
         # 队列锁 (防止并发问题)
         self.queue_lock = asyncio.Lock()
         
         # 清理任务引用
         self._cleanup_task = None
         
-        logger.info("GameService initialized")
+        logger.info("GameService initialized with non-repeating word tracking")
     
     async def start_cleanup_task(self):
         """
@@ -218,6 +283,8 @@ class GameService:
                         del self.active_sessions[session_id]
                     if session_id in self.session_timestamps:
                         del self.session_timestamps[session_id]
+                    if session_id in self.session_used_words:
+                        del self.session_used_words[session_id]
                     
                     logger.info(f"Cleaned up expired session | session_id={session_id}")
                 
@@ -252,11 +319,14 @@ class GameService:
                 'created_at': time.time()
             }
             
+            # 初始化已使用词汇集合 (追踪A, B, C所有词汇)
+            self.session_used_words[session_id] = set()
+            
             # 更新时间戳
             self.session_timestamps[session_id] = time.time()
         
         # 生成第一题 (立即返回，不加入队列)
-        first_puzzle = await self._generate_single_puzzle(difficulty, language, llm)
+        first_puzzle = await self._generate_single_puzzle(difficulty, language, llm, session_id)
         
         # 异步预生成5题到队列 (不包含第一题)
         # 第一题已经显示在前端，队列中应该是后续的题目
@@ -292,7 +362,7 @@ class GameService:
                     logger.debug(f"Session ended, stopping prefetch | session_id={session_id}")
                     break
                 
-                puzzle = await self._generate_single_puzzle(difficulty, language, llm)
+                puzzle = await self._generate_single_puzzle(difficulty, language, llm, session_id)
                 
                 async with self.queue_lock:
                     if session_id in self.active_sessions:
@@ -334,7 +404,8 @@ class GameService:
             puzzle = await self._generate_single_puzzle(
                 session['difficulty'],
                 session['language'],
-                session['llm']
+                session['llm'],
+                session_id
             )
         else:
             # 从队列取出第一题
@@ -349,98 +420,272 @@ class GameService:
         
         return self._format_puzzle_response(puzzle, session['language'])
     
-    async def _generate_single_puzzle(self, difficulty: str, language: str, llm: str = "qwen") -> Dict:
+    async def _get_puzzle_from_database(self, difficulty: str, language: str, session_id: str) -> Optional[Dict]:
+        """
+        从数据库获取题目 (优先策略)
+        使用随机选择 + 词汇去重逻辑
+        
+        Args:
+            difficulty: 难度等级
+            language: 语言模式
+            session_id: 会话ID (用于获取已使用词汇)
+        
+        Returns:
+            Dict: 题目数据 (如果找到) 或 None
+        """
+        try:
+            # Get used words for this session
+            used_words = self.session_used_words.get(session_id, set())
+            
+            # Get database session
+            db_gen = get_db()
+            db = next(db_gen)
+            
+            try:
+                # Query puzzles matching criteria
+                query = db.query(PuzzleInventory).filter(
+                    PuzzleInventory.difficulty == difficulty,
+                    PuzzleInventory.language == language
+                )
+                
+                # Filter out puzzles with used words AND validate uniqueness
+                if language == 'zh':
+                    # Chinese: check char1, char2, answer
+                    available_puzzles = [
+                        p for p in query.all()
+                        if (p.char1 not in used_words and 
+                            p.char2 not in used_words and 
+                            p.answer not in used_words and
+                            # VALIDATION: answer must be different from inputs
+                            p.answer != p.char1 and
+                            p.answer != p.char2 and
+                            p.char1 != p.char2)
+                    ]
+                else:
+                    # English: check word1_en, word2_en, word3_en, answer
+                    available_puzzles = [
+                        p for p in query.all()
+                        if (p.word1_en not in used_words and 
+                            p.word2_en not in used_words and 
+                            p.word3_en not in used_words and 
+                            p.answer not in used_words and
+                            # VALIDATION: answer must be different from all inputs
+                            p.answer.lower() not in [p.word1_en.lower(), p.word2_en.lower(), p.word3_en.lower()] and
+                            len(set([p.word1_en.lower(), p.word2_en.lower(), p.word3_en.lower()])) == 3)
+                    ]
+                
+                if not available_puzzles:
+                    logger.warning(f"No available puzzles in database | difficulty={difficulty} | language={language} | used_words={len(used_words)}")
+                    return None
+                
+                # RANDOMIZE: Shuffle and pick first one (makes it unpredictable)
+                random.shuffle(available_puzzles)
+                selected_puzzle = available_puzzles[0]
+                
+                # Generate puzzle_id
+                puzzle_id = f"db_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+                
+                # Build puzzle data
+                if language == 'zh':
+                    puzzle_data = {
+                        'puzzle_id': puzzle_id,
+                        'difficulty': difficulty,
+                        'language': language,
+                        'char1': selected_puzzle.char1,
+                        'char2': selected_puzzle.char2,
+                        'answer': selected_puzzle.answer,
+                        'word1': selected_puzzle.word1,
+                        'word2': selected_puzzle.word2,
+                        'pattern': selected_puzzle.pattern,
+                        'explanation': selected_puzzle.explanation or '',
+                        'created_at': int(time.time()),
+                        'source': 'database'  # Track source
+                    }
+                    
+                    # Track used words (char1, char2, answer)
+                    self.session_used_words[session_id].add(selected_puzzle.char1)
+                    self.session_used_words[session_id].add(selected_puzzle.char2)
+                    self.session_used_words[session_id].add(selected_puzzle.answer)
+                    
+                else:
+                    puzzle_data = {
+                        'puzzle_id': puzzle_id,
+                        'difficulty': difficulty,
+                        'language': language,
+                        'word1': selected_puzzle.word1_en,
+                        'word2': selected_puzzle.word2_en,
+                        'word3': selected_puzzle.word3_en,
+                        'answer': selected_puzzle.answer,
+                        'phrase1': selected_puzzle.phrase1,
+                        'phrase2': selected_puzzle.phrase2,
+                        'phrase3': selected_puzzle.phrase3,
+                        'explanation': selected_puzzle.explanation or '',
+                        'created_at': int(time.time()),
+                        'source': 'database'
+                    }
+                    
+                    # Track used words (word1, word2, word3, answer)
+                    self.session_used_words[session_id].add(selected_puzzle.word1_en)
+                    self.session_used_words[session_id].add(selected_puzzle.word2_en)
+                    self.session_used_words[session_id].add(selected_puzzle.word3_en)
+                    self.session_used_words[session_id].add(selected_puzzle.answer)
+                
+                logger.info(f"Puzzle from database | puzzle_id={puzzle_id} | available={len(available_puzzles)} | used_words={len(used_words)}")
+                
+                return puzzle_data
+            
+            finally:
+                db.close()
+        
+        except Exception as e:
+            logger.error(f"Error getting puzzle from database | error={e}")
+            return None
+    
+    async def _generate_single_puzzle(self, difficulty: str, language: str, llm: str = "qwen", session_id: str = None) -> Dict:
         """
         生成单个题目
+        策略: 优先使用数据库 (快速 + 无重复), 降级使用LLM (灵活)
         
         Args:
             difficulty: 难度等级
             language: 语言模式
             llm: LLM模型
+            session_id: 会话ID (用于词汇去重)
         
         Returns:
             Dict: 完整题目数据 (包含答案)
         """
         start_time = time.time()
         
-        try:
-            # 选择提示词和随机pattern
-            import random
+        # STRATEGY 1: Try database first (if session_id provided)
+        if session_id:
+            db_puzzle = await self._get_puzzle_from_database(difficulty, language, session_id)
+            if db_puzzle:
+                duration = time.time() - start_time
+                perf_logger.info(f"Puzzle from database | puzzle_id={db_puzzle['puzzle_id']} | duration={duration:.3f}s")
+                
+                # Store in global cache
+                self.active_puzzles[db_puzzle['puzzle_id']] = db_puzzle
+                
+                return db_puzzle
             
-            # 主题列表 - 强制多样性
-            themes_zh = [
-                "自然景物（山、水、风、云等）",
-                "人物关系（父、母、兄、弟等）", 
-                "时间概念（春、夏、秋、冬、早、晚等）",
-                "颜色（红、黄、蓝、绿等）",
-                "方位（上、下、左、右、东、西等）",
-                "身体部位（手、足、心、头等）",
-                "日常物品（书、笔、纸、桌等）",
-                "动植物（花、草、树、木等）",
-                "天气（晴、雨、雪、霜等）",
-                "情感（喜、怒、哀、乐等）",
-                "建筑（门、窗、房、院等）",
-                "学习（学、教、读、写等）"
-            ]
-            
-            if language == 'zh':
-                pattern = random.choice([1, 2, 3])
-                theme = random.choice(themes_zh)  # 随机选择主题
-                system_prompt = GENERATE_PUZZLE_SYSTEM_PROMPT_CHINESE
-                user_prompt = f"""请生成一个{difficulty}难度的中文字词接龙题目，使用Pattern {pattern}。
+            logger.info(f"Database exhausted, falling back to LLM | session_id={session_id}")
+        
+        # Retry logic for LLM generation (max 3 attempts)
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                # 选择提示词和随机pattern
+                import random
+                
+                # 主题列表 - 强制多样性
+                themes_zh = [
+                    "自然景物（山、水、风、云等）",
+                    "人物关系（父、母、兄、弟等）", 
+                    "时间概念（春、夏、秋、冬、早、晚等）",
+                    "颜色（红、黄、蓝、绿等）",
+                    "方位（上、下、左、右、东、西等）",
+                    "身体部位（手、足、心、头等）",
+                    "日常物品（书、笔、纸、桌等）",
+                    "动植物（花、草、树、木等）",
+                    "天气（晴、雨、雪、霜等）",
+                    "情感（喜、怒、哀、乐等）",
+                    "建筑（门、窗、房、院等）",
+                    "学习（学、教、读、写等）"
+                ]
+                
+                if language == 'zh':
+                    pattern = random.choice([1, 2, 3])
+                    theme = random.choice(themes_zh)  # 随机选择主题
+                    system_prompt = GENERATE_PUZZLE_SYSTEM_PROMPT_CHINESE
+                    user_prompt = f"""请生成一个{difficulty}难度的中文字词接龙题目，使用Pattern {pattern}。
 
 **主题建议**: {theme}
 
 **重要要求**:
 - 每次必须生成完全不同的答案字
+- 答案字不能与字A或字B相同
 - 避免使用常见重复字如"气、火、水、土、风、雨、天、地"
 - 从{theme}领域选择词汇
 - 确保词汇新颖、有趣、不重复
 
 请创造性地思考，生成独特的题目。"""
-            else:
-                system_prompt = GENERATE_PUZZLE_SYSTEM_PROMPT_ENGLISH
-                user_prompt = f"Generate an {difficulty} difficulty English word association puzzle. Use creative, unique, and diverse vocabulary. Avoid common repetitive words."
-            
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ]
-            
-            # 调用LLM
-            response = await llm_service.chat_completion(
-                model=llm,
-                messages=messages,
-                temperature=1.1,  # 更高温度以增加多样性和创造性
-                max_tokens=2000
-            )
-            
-            # 解析JSON
-            puzzle_data = self._parse_llm_response(response, language)
-            
-            # 生成puzzle_id
-            puzzle_id = f"puzzle_{int(time.time())}_{uuid.uuid4().hex[:8]}"
-            
-            # 构建完整题目数据
-            full_puzzle = {
-                'puzzle_id': puzzle_id,
-                'difficulty': difficulty,
-                'language': language,
-                **puzzle_data,
-                'created_at': int(time.time())
-            }
-            
-            # 存储到全局缓存
-            self.active_puzzles[puzzle_id] = full_puzzle
-            
-            duration = time.time() - start_time
-            perf_logger.info(f"Puzzle generated | puzzle_id={puzzle_id} | duration={duration:.2f}s")
-            
-            return full_puzzle
+                else:
+                    system_prompt = GENERATE_PUZZLE_SYSTEM_PROMPT_ENGLISH
+                    user_prompt = f"Generate an {difficulty} difficulty English word association puzzle. Use creative, unique, and diverse vocabulary. Avoid common repetitive words. The answer must be different from all three input words."
+                
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ]
+                
+                # 调用LLM
+                response = await llm_service.chat_completion(
+                    model=llm,
+                    messages=messages,
+                    temperature=1.1,  # 更高温度以增加多样性和创造性
+                    max_tokens=2000
+                )
+                
+                # 解析JSON
+                puzzle_data = self._parse_llm_response(response, language)
+                
+                # VALIDATION: Check puzzle uniqueness
+                if not validate_puzzle_uniqueness(puzzle_data, language):
+                    if attempt < max_retries - 1:
+                        logger.warning(f"Invalid puzzle generated (answer matches input), retrying... (attempt {attempt + 1}/{max_retries})")
+                        continue  # Retry
+                    else:
+                        logger.error(f"Failed to generate valid puzzle after {max_retries} attempts")
+                        raise ValueError("Failed to generate valid puzzle: answer matches input characters")
+                
+                # Validation passed, break out of retry loop
+                logger.info(f"Valid puzzle generated on attempt {attempt + 1}")
+                break
+                
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    logger.warning(f"Puzzle generation error, retrying... (attempt {attempt + 1}/{max_retries}) | error={e}")
+                    continue
+                else:
+                    logger.error(f"Failed to generate puzzle after {max_retries} attempts | error={e}")
+                    raise
         
-        except Exception as e:
-            logger.error(f"Failed to generate puzzle | difficulty={difficulty} | language={language} | error={e}")
-            raise
+        # After successful generation and validation, build the full puzzle
+        # 生成puzzle_id
+        puzzle_id = f"puzzle_{int(time.time())}_{uuid.uuid4().hex[:8]}"
+        
+        # 构建完整题目数据
+        full_puzzle = {
+            'puzzle_id': puzzle_id,
+            'difficulty': difficulty,
+            'language': language,
+            **puzzle_data,
+            'created_at': int(time.time()),
+            'source': 'llm'  # Track source
+        }
+        
+        # Track used words (if session_id provided)
+        if session_id and session_id in self.session_used_words:
+            if language == 'zh':
+                self.session_used_words[session_id].add(puzzle_data['char1'])
+                self.session_used_words[session_id].add(puzzle_data['char2'])
+                self.session_used_words[session_id].add(puzzle_data['answer'])
+                logger.debug(f"Tracked LLM words (ZH) | session_id={session_id} | total_used={len(self.session_used_words[session_id])}")
+            else:
+                self.session_used_words[session_id].add(puzzle_data['word1'])
+                self.session_used_words[session_id].add(puzzle_data['word2'])
+                self.session_used_words[session_id].add(puzzle_data['word3'])
+                self.session_used_words[session_id].add(puzzle_data['answer'])
+                logger.debug(f"Tracked LLM words (EN) | session_id={session_id} | total_used={len(self.session_used_words[session_id])}")
+        
+        # 存储到全局缓存
+        self.active_puzzles[puzzle_id] = full_puzzle
+        
+        duration = time.time() - start_time
+        perf_logger.info(f"Puzzle generated by LLM | puzzle_id={puzzle_id} | duration={duration:.2f}s")
+        
+        return full_puzzle
     
     def _parse_llm_response(self, response: str, language: str) -> Dict:
         """
@@ -678,6 +923,8 @@ class GameService:
             del self.active_sessions[session_id]
         if session_id in self.session_timestamps:
             del self.session_timestamps[session_id]
+        if session_id in self.session_used_words:
+            del self.session_used_words[session_id]
         
         logger.info(f"Session cleared | session_id={session_id}")
         return {'status': 'success', 'message': 'Session cleared'}

@@ -46,6 +46,7 @@
 
 :root {
     /* 颜色系统 - 优雅的渐变色调 */
+    --primary-color: #667eea;
     --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
     --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
@@ -85,6 +86,24 @@ body {
     z-index: 1000;
 }
 
+@media (max-width: 768px) {
+    .header {
+        padding: 0.75rem 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .header {
+        padding: 0.6rem 0.75rem;
+    }
+}
+
+@media (max-width: 380px) {
+    .header {
+        padding: 0.5rem 0.5rem;
+    }
+}
+
 .logo {
     font-size: 1.8rem;
     font-weight: 700;
@@ -95,10 +114,32 @@ body {
     letter-spacing: 2px;
 }
 
+@media (max-width: 768px) {
+    .logo {
+        font-size: 1.5rem;
+        letter-spacing: 1.5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo {
+        font-size: 1.3rem;
+        letter-spacing: 1px;
+    }
+}
+
+@media (max-width: 380px) {
+    .logo {
+        font-size: 1.2rem;
+        letter-spacing: 0.8px;
+    }
+}
+
 .header-controls {
     display: flex;
     gap: 0.5rem;
     align-items: center;
+    flex-wrap: nowrap;
 }
 
 .btn-text {
@@ -112,6 +153,11 @@ body {
     color: var(--text-color);
     transition: all 0.3s ease;
     box-shadow: var(--shadow-sm);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
 }
 
 .btn-text:hover {
@@ -139,6 +185,10 @@ body {
     box-shadow: var(--shadow-sm);
     min-width: 48px;
     text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
 }
 
 .btn-lang:hover {
@@ -148,6 +198,88 @@ body {
 
 .btn-lang:active {
     transform: translateY(0);
+}
+
+/* Mobile responsive buttons */
+@media (max-width: 768px) {
+    .header-controls {
+        gap: 0.35rem;
+        flex-wrap: nowrap;
+    }
+    
+    .btn-text {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+        border-width: 1.5px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-lang {
+        padding: 0.4rem 0.6rem;
+        font-size: 0.8rem;
+        border-radius: 6px;
+        min-width: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .header-controls {
+        gap: 0.25rem;
+        flex-wrap: nowrap;
+    }
+    
+    .btn-text {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.75rem;
+        border-width: 1px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-lang {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.75rem;
+        border-radius: 6px;
+        min-width: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 380px) {
+    .header-controls {
+        gap: 0.2rem;
+        flex-wrap: nowrap;
+    }
+    
+    .btn-text {
+        padding: 0.3rem 0.4rem;
+        font-size: 0.7rem;
+        border-width: 1px;
+        border-radius: 5px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .btn-lang {
+        padding: 0.3rem 0.4rem;
+        font-size: 0.7rem;
+        border-radius: 5px;
+        min-width: 35px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
 }
 
 /* ============================================================================
@@ -974,15 +1106,38 @@ body {
     padding: 2rem;
     max-width: 500px;
     width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
     box-shadow: var(--shadow-xl);
     animation: slideUp 0.3s ease-out;
+    position: relative; /* Make close button position relative to modal panel */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+/* Custom scrollbar styling for modals */
+.modal-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: var(--bg-color);
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-light);
 }
 
 /* Score Submission Modal */
 .score-modal {
     max-width: 450px;
     padding: 0;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .score-header {
@@ -992,9 +1147,17 @@ body {
     color: white;
 }
 
+.score-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
 .score-icon {
     font-size: 4rem;
-    margin-bottom: 0.5rem;
+    line-height: 1;
     animation: bounce 1s ease infinite;
 }
 
@@ -1004,9 +1167,10 @@ body {
 }
 
 .score-header h2 {
-    margin: 0 0 1rem 0;
+    margin: 0;
     font-size: 1.8rem;
     font-weight: 700;
+    line-height: 1;
 }
 
 .final-score {
@@ -1090,29 +1254,34 @@ body {
     gap: 0.75rem;
     margin-bottom: 0.75rem;
     align-items: center;
+    height: 80px;
 }
 
 .captcha-img {
     flex: 1;
     border: 2px solid var(--border-color);
     border-radius: 10px;
-    height: 50px;
-    object-fit: cover;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    background: #f9f9f9;
+    display: block;
 }
 
 .btn-refresh {
-    width: 50px;
-    height: 50px;
+    width: 80px;
+    height: 80px;
     padding: 0;
     border: 2px solid var(--border-color);
     border-radius: 10px;
     background: white;
     cursor: pointer;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .btn-refresh:hover {
@@ -1225,10 +1394,7 @@ body {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    z-index: 10;
+    flex-shrink: 0; /* Prevent shrinking in flex containers */
 }
 
 .modal-close:hover {
@@ -1237,30 +1403,49 @@ body {
     transform: rotate(90deg);
 }
 
+/* Absolute positioning for close buttons outside modal-header */
+.about-modal .modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+}
+
 /* About Modal - Elegant Design */
 .about-modal {
-    max-width: 400px;
+    max-width: 480px;
     padding: 3rem 2rem;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .about-content {
     text-align: center;
 }
 
+.about-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
 .about-logo {
     font-size: 4rem;
-    margin-bottom: 1rem;
+    line-height: 1;
     animation: float 3s ease-in-out infinite;
 }
 
 .about-content h2 {
     font-size: 2.5rem;
     font-weight: 700;
-    margin: 0 0 0.5rem 0;
+    margin: 0;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    line-height: 1;
 }
 
 .about-tagline {
@@ -1286,6 +1471,11 @@ body {
 
 .about-credits {
     text-align: center;
+}
+
+.about-credits .about-org {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
 }
 
 .credit-line {
@@ -1314,8 +1504,339 @@ body {
     gap: 0.5rem;
 }
 
+/* About Modal - New Sections */
+.about-section {
+    text-align: center;
+}
+
+.about-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.section-emoji {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.product-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 600px) {
+    .product-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+.product-item {
+    background: var(--bg-color);
+    padding: 1.25rem;
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.product-item:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.product-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+    margin-bottom: 0.25rem;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.product-name {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+}
+
+.product-desc {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.partnership-message {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+}
+
+.partnership-message p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-color);
+    line-height: 1.6;
+    text-align: center;
+}
+
+.about-org {
+    font-size: 0.95rem;
+    color: var(--text-color);
+    font-weight: 600;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.contact-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 1rem;
+}
+
+.qr-code-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.wechat-qr {
+    width: 180px;
+    height: 180px;
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    object-fit: cover;
+}
+
+.qr-label {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    margin: 0;
+}
+
 .share-content {
     text-align: center;
+}
+
+/* ============================================================================
+   Leaderboard Modal
+   ============================================================================ */
+
+.leaderboard-modal {
+    max-width: 600px;
+    padding: 2rem;
+}
+
+.leaderboard-filters {
+    display: flex !important;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: nowrap;
+    position: relative;
+    z-index: 10;
+    visibility: visible !important;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    border: 2px solid var(--border-color);
+    background: white;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: var(--text-light);
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+    white-space: nowrap;
+    position: relative;
+    z-index: 10;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.filter-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.filter-btn.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+.leaderboard-content {
+    min-height: 400px;
+    max-height: 60vh;
+    overflow-y: auto;
+    position: relative;
+    z-index: 1;
+}
+
+.leaderboard-content .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 3rem 1rem;
+    color: var(--text-light);
+}
+
+.leaderboard-content .spinner {
+    border: 3px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.leaderboard-table thead {
+    background: var(--bg-color);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.leaderboard-table th {
+    padding: 0.75rem 0.5rem;
+    text-align: left;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-light);
+    text-transform: uppercase;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.leaderboard-table td {
+    padding: 0.875rem 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.95rem;
+}
+
+.leaderboard-table tbody tr:hover {
+    background: var(--bg-color);
+}
+
+.leaderboard-table tbody tr.current-player {
+    background: linear-gradient(90deg, rgba(102, 126, 234, 0.1), transparent);
+    font-weight: 700;
+}
+
+.rank-cell {
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.rank-cell.top-1 {
+    color: #FFD700;
+    font-size: 1.2rem;
+}
+
+.rank-cell.top-2 {
+    color: #C0C0C0;
+    font-size: 1.1rem;
+}
+
+.rank-cell.top-3 {
+    color: #CD7F32;
+    font-size: 1.1rem;
+}
+
+.player-cell {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.school-cell {
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+.score-cell {
+    font-weight: 700;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+}
+
+.games-cell {
+    color: var(--text-light);
+}
+
+.leaderboard-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-light);
+}
+
+.leaderboard-empty .empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.leaderboard-footer {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+}
+
+.leaderboard-footer p {
+    color: var(--text-light);
+    font-size: 0.875rem;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.leaderboard-footer .about-link {
+    color: var(--primary-color);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s ease;
+    padding: 0 2px;
+}
+
+.leaderboard-footer .about-link:hover {
+    color: #764ba2;
+    border-bottom-color: var(--primary-color);
 }
 
 .share-content p {
@@ -1396,14 +1917,15 @@ body {
         padding: 0 1rem;
     }
     
-    .word-box {
-        width: 80px;
-        height: 80px;
-        font-size: 2rem;
+    /* Keep game boxes same size as desktop for better usability */
+    .game-ui .word-box {
+        width: 110px;
+        height: 110px;
+        font-size: 2.3rem;
     }
     
-    .puzzle-boxes {
-        gap: 0.5rem;
+    .game-ui .puzzle-boxes {
+        gap: 0.75rem;
     }
     
     .game-header {
@@ -1428,6 +1950,116 @@ body {
     .game-controls button span::before {
         margin-right: 0.75rem;
         font-size: 1.2em;
+    }
+}
+
+/* Small Mobile Screens (Portrait phones) */
+@media (max-width: 480px) {
+    .game-ui .word-box {
+        width: 95px;
+        height: 95px;
+        font-size: 2rem;
+    }
+    
+    .game-ui .puzzle-boxes {
+        gap: 0.6rem;
+    }
+    
+    .puzzle-container {
+        padding: 2rem 1rem;
+    }
+    
+    /* Allow container to scroll horizontally if needed */
+    .game-ui .puzzle-boxes {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 0.5rem 0;
+    }
+    
+    /* Ensure modals are scrollable on small screens */
+    .modal-content {
+        width: 95%;
+        max-height: 85vh;
+        padding: 1.5rem;
+    }
+    
+    .score-modal form {
+        padding: 1.5rem;
+    }
+    
+    .score-header {
+        padding: 1.5rem 1rem;
+    }
+    
+    .score-icon {
+        font-size: 3rem;
+    }
+    
+    .score-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .score-title-row {
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .final-score {
+        margin-top: 0.5rem;
+    }
+    
+    .score-value {
+        font-size: 2rem;
+    }
+}
+
+/* Very Small Mobile Screens */
+@media (max-width: 380px) {
+    .game-ui .word-box {
+        width: 85px;
+        height: 85px;
+        font-size: 1.8rem;
+    }
+    
+    .game-ui .puzzle-boxes {
+        gap: 0.5rem;
+    }
+    
+    .game-ui .divider-box {
+        width: 45px;
+    }
+    
+    /* About modal - stack cat and text on very small screens */
+    .about-header {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .about-logo {
+        font-size: 3rem;
+    }
+    
+    .about-content h2 {
+        font-size: 2rem;
+    }
+    
+    /* Score modal - more compact on very small screens */
+    .score-header {
+        padding: 1.25rem 0.75rem;
+    }
+    
+    .score-icon {
+        font-size: 2.5rem;
+    }
+    
+    .score-header h2 {
+        font-size: 1.3rem;
+    }
+    
+    .score-title-row {
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
     }
 }
 

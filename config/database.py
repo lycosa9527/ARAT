@@ -63,6 +63,42 @@ class PuzzleHistory(Base):
     # 时间戳
     created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
 
+class PuzzleInventory(Base):
+    """题库表 - LLM预生成的题目库"""
+    __tablename__ = "puzzle_inventory"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    puzzle_id = Column(String, index=True)  # 题目唯一ID
+    
+    # 题目内容
+    difficulty = Column(String, index=True)  # 难度等级
+    language = Column(String, index=True)  # 语言模式
+    
+    # 中文题目字段
+    char1 = Column(String, nullable=True, index=True)  # 字1
+    char2 = Column(String, nullable=True, index=True)  # 字2
+    pattern = Column(Integer, nullable=True)  # 模式 (1/2/3)
+    word1 = Column(String, nullable=True)  # 词语1
+    word2 = Column(String, nullable=True)  # 词语2
+    
+    # 英文题目字段
+    word1_en = Column(String, nullable=True, index=True)  # 单词1
+    word2_en = Column(String, nullable=True, index=True)  # 单词2
+    word3_en = Column(String, nullable=True, index=True)  # 单词3
+    phrase1 = Column(String, nullable=True)  # 短语1
+    phrase2 = Column(String, nullable=True)  # 短语2
+    phrase3 = Column(String, nullable=True)  # 短语3
+    
+    # 答案
+    answer = Column(String, index=True)  # 正确答案
+    explanation = Column(String, nullable=True)  # 解释
+    
+    # 状态
+    is_used = Column(Integer, default=0)  # 是否已使用过
+    
+    # 时间戳
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+
 # 数据库引擎和会话（延迟初始化）
 engine = None
 SessionLocal = None

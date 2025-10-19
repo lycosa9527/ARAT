@@ -823,6 +823,240 @@ async def delete_puzzle_inventory(request: Request, db: Session = Depends(get_db
         raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================
+# Puzzle Validation Admin Endpoint
+# ============================================================================
+
+@router.get("/admin/puzzle_inventory/validate")
+async def validate_puzzle_inventory(db: Session = Depends(get_db)):
+    """
+    检查puzzle_inventory表中的无效题目
+    无效题目定义：答案与输入字符相同（A=C或B=C）
+    
+    Returns:
+        Dict: 无效题目列表和统计信息
+    """
+    try:
+        from sqlalchemy import text
+        
+        # Get all puzzles
+        query = text("""
+            SELECT id, puzzle_id, difficulty, language, 
+                   char1, char2, answer, 
+                   word1_en, word2_en, word3_en
+            FROM puzzle_inventory
+        """)
+        result = db.execute(query)
+        all_puzzles = result.fetchall()
+        
+        invalid_puzzles = []
+        stats = {
+            'total': len(all_puzzles),
+            'invalid_zh': 0,
+            'invalid_en': 0,
+            'valid': 0
+        }
+        
+        for p in all_puzzles:
+            is_invalid = False
+            reason = ""
+            
+            if p.language == 'zh':
+                # Check Chinese puzzles
+                if p.answer == p.char1:
+                    is_invalid = True
+                    reason = f"答案'{p.answer}'与字A相同"
+                elif p.answer == p.char2:
+                    is_invalid = True
+                    reason = f"答案'{p.answer}'与字B相同"
+                elif p.char1 == p.char2:
+                    is_invalid = True
+                    reason = f"字A和字B相同: '{p.char1}'"
+                
+                if is_invalid:
+                    stats['invalid_zh'] += 1
+                    invalid_puzzles.append({
+                        'id': p.id,
+                        'puzzle_id': p.puzzle_id,
+                        'language': 'zh',
+                        'difficulty': p.difficulty,
+                        'char1': p.char1,
+                        'char2': p.char2,
+                        'answer': p.answer,
+                        'reason': reason
+                    })
+            
+            elif p.language == 'en':
+                # Check English puzzles
+                answer_lower = p.answer.lower() if p.answer else ''
+                word1_lower = p.word1_en.lower() if p.word1_en else ''
+                word2_lower = p.word2_en.lower() if p.word2_en else ''
+                word3_lower = p.word3_en.lower() if p.word3_en else ''
+                
+                if answer_lower == word1_lower:
+                    is_invalid = True
+                    reason = f"Answer '{p.answer}' same as word1"
+                elif answer_lower == word2_lower:
+                    is_invalid = True
+                    reason = f"Answer '{p.answer}' same as word2"
+                elif answer_lower == word3_lower:
+                    is_invalid = True
+                    reason = f"Answer '{p.answer}' same as word3"
+                elif len(set([word1_lower, word2_lower, word3_lower])) < 3:
+                    is_invalid = True
+                    reason = f"Duplicate input words"
+                
+                if is_invalid:
+                    stats['invalid_en'] += 1
+                    invalid_puzzles.append({
+                        'id': p.id,
+                        'puzzle_id': p.puzzle_id,
+                        'language': 'en',
+                        'difficulty': p.difficulty,
+                        'word1': p.word1_en,
+                        'word2': p.word2_en,
+                        'word3': p.word3_en,
+                        'answer': p.answer,
+                        'reason': reason
+                    })
+        
+        stats['valid'] = stats['total'] - stats['invalid_zh'] - stats['invalid_en']
+        stats['invalid_total'] = stats['invalid_zh'] + stats['invalid_en']
+        
+        logger.info(f"Admin: Validated puzzle inventory | total={stats['total']} | invalid={stats['invalid_total']}")
+        
+        return {
+            'status': 'success',
+            'stats': stats,
+            'invalid_puzzles': invalid_puzzles
+        }
+    
+    except Exception as e:
+        logger.error(f"Failed to validate puzzle inventory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/admin/puzzle_inventory/cleanup")
+async def cleanup_invalid_puzzles(db: Session = Depends(get_db)):
+    """
+    自动清理puzzle_inventory表中的所有无效题目
+    无效题目定义：答案与输入字符相同（A=C或B=C）
+    
+    这个操作会永久删除无效题目，请谨慎使用！
+    
+    Returns:
+        Dict: 删除统计和被删除的题目列表
+    """
+    try:
+        from sqlalchemy import text
+        
+        # Get all puzzles
+        query = text("""
+            SELECT id, puzzle_id, difficulty, language, 
+                   char1, char2, answer, 
+                   word1_en, word2_en, word3_en
+            FROM puzzle_inventory
+        """)
+        result = db.execute(query)
+        all_puzzles = result.fetchall()
+        
+        invalid_ids = []
+        deleted_puzzles = []
+        stats = {
+            'total_before': len(all_puzzles),
+            'deleted_zh': 0,
+            'deleted_en': 0,
+            'remaining': 0
+        }
+        
+        for p in all_puzzles:
+            is_invalid = False
+            reason = ""
+            
+            if p.language == 'zh':
+                # Check Chinese puzzles
+                if p.answer == p.char1:
+                    is_invalid = True
+                    reason = f"答案'{p.answer}'与字A相同"
+                elif p.answer == p.char2:
+                    is_invalid = True
+                    reason = f"答案'{p.answer}'与字B相同"
+                elif p.char1 == p.char2:
+                    is_invalid = True
+                    reason = f"字A和字B相同: '{p.char1}'"
+                
+                if is_invalid:
+                    stats['deleted_zh'] += 1
+                    invalid_ids.append(p.id)
+                    deleted_puzzles.append({
+                        'id': p.id,
+                        'puzzle_id': p.puzzle_id,
+                        'language': 'zh',
+                        'difficulty': p.difficulty,
+                        'puzzle': f"{p.char1} | {p.char2} = {p.answer}",
+                        'reason': reason
+                    })
+            
+            elif p.language == 'en':
+                # Check English puzzles
+                answer_lower = p.answer.lower() if p.answer else ''
+                word1_lower = p.word1_en.lower() if p.word1_en else ''
+                word2_lower = p.word2_en.lower() if p.word2_en else ''
+                word3_lower = p.word3_en.lower() if p.word3_en else ''
+                
+                if answer_lower == word1_lower:
+                    is_invalid = True
+                    reason = f"Answer '{p.answer}' same as word1"
+                elif answer_lower == word2_lower:
+                    is_invalid = True
+                    reason = f"Answer '{p.answer}' same as word2"
+                elif answer_lower == word3_lower:
+                    is_invalid = True
+                    reason = f"Answer '{p.answer}' same as word3"
+                elif len(set([word1_lower, word2_lower, word3_lower])) < 3:
+                    is_invalid = True
+                    reason = f"Duplicate input words"
+                
+                if is_invalid:
+                    stats['deleted_en'] += 1
+                    invalid_ids.append(p.id)
+                    deleted_puzzles.append({
+                        'id': p.id,
+                        'puzzle_id': p.puzzle_id,
+                        'language': 'en',
+                        'difficulty': p.difficulty,
+                        'puzzle': f"{p.word1_en}, {p.word2_en}, {p.word3_en} = {p.answer}",
+                        'reason': reason
+                    })
+        
+        # Delete invalid puzzles in batch
+        if invalid_ids:
+            delete_query = text("DELETE FROM puzzle_inventory WHERE id IN :ids")
+            db.execute(delete_query, {"ids": tuple(invalid_ids)})
+            db.commit()
+            
+            logger.warning(f"Admin: Deleted {len(invalid_ids)} invalid puzzles from inventory")
+        
+        stats['total_deleted'] = stats['deleted_zh'] + stats['deleted_en']
+        stats['remaining'] = stats['total_before'] - stats['total_deleted']
+        
+        security_logger.warning(
+            f"ADMIN: Puzzle inventory cleanup completed | "
+            f"deleted={stats['total_deleted']} (zh={stats['deleted_zh']}, en={stats['deleted_en']}) | "
+            f"remaining={stats['remaining']}"
+        )
+        
+        return {
+            'status': 'success',
+            'message': f"Successfully deleted {stats['total_deleted']} invalid puzzles",
+            'stats': stats,
+            'deleted_puzzles': deleted_puzzles
+        }
+    
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Failed to cleanup invalid puzzles: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
 # Inventory Admin Endpoints (Disabled - requires PuzzleInventory model)
 # ============================================================================
 # These endpoints are commented out because PuzzleInventory model doesn't exist

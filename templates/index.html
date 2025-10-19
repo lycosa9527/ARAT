@@ -12,6 +12,9 @@
     <header class="header">
         <div class="logo">ARAT</div>
         <div class="header-controls">
+            <button id="leaderboardBtn" class="btn-text" title="排行榜">
+                <span data-i18n="leaderboard-btn">排行榜</span>
+            </button>
             <button id="shareBtn" class="btn-text" title="分享">
                 <span data-i18n="share-btn">分享</span>
             </button>
@@ -31,7 +34,7 @@
             
             <!-- Demo Puzzle Display -->
             <div class="demo-section">
-                <h2 data-i18n="demo-title">游戏演示</h2>
+                <h2 data-i18n="game-demo">游戏演示</h2>
                     <div class="puzzle-boxes demo-boxes">
                         <div class="word-box">学</div>
                         <div class="word-box divider-box">
@@ -39,7 +42,7 @@
                         </div>
                         <div class="word-box">园</div>
                     </div>
-                    <p class="demo-explanation" data-i18n="demo-explanation">
+                    <p class="demo-explanation" data-i18n="game-demo-explanation">
                         找到能连接这两个字的答案：学 + <strong>校</strong> + 园 = 学<strong>校</strong>、<strong>校</strong>园
                     </p>
             </div>
@@ -140,8 +143,10 @@
     <div id="captchaModal" class="modal">
         <div class="modal-content score-modal">
             <div class="score-header">
-                <div class="score-icon">🎉</div>
-                <h2 data-i18n="game-over">游戏结束！</h2>
+                <div class="score-title-row">
+                    <div class="score-icon">🎉</div>
+                    <h2 data-i18n="game-over">游戏结束！</h2>
+                </div>
                 <div class="final-score">
                     <span class="score-label" data-i18n="your-score">你的得分</span>
                     <span class="score-value" id="finalScore">0</span>
@@ -192,28 +197,51 @@
             <div class="modal-content about-modal">
                 <button class="modal-close" id="closeAboutModal">&times;</button>
                 <div class="about-content">
-                    <div class="about-logo">🐈‍⬛</div>
-                    <h2>ARAT</h2>
-                    <p class="about-tagline" data-i18n="about-tagline">字词接龙 · Word Bridge</p>
-                    <p class="version">v0.1.0</p>
+                    <div class="about-header">
+                        <div class="about-logo">🐈‍⬛</div>
+                        <h2>ARAT</h2>
+                    </div>
                     
                     <div class="about-divider"></div>
                     
                     <div class="about-credits">
                         <p class="credit-line">
-                            <span class="credit-label" data-i18n="about-made-by">Made by</span>
-                            <span class="credit-value">lyc9527</span>
+                            <span class="credit-label" data-i18n="about-author">Author:</span>
+                            <span class="credit-value">lyc9527 from MTEL Team</span>
                         </p>
-                        <p class="credit-line">
-                            <span class="credit-label" data-i18n="about-from">From</span>
-                            <span class="credit-value">MTEL Team</span>
-                        </p>
-                        <p class="credit-line">
-                            <span class="credit-value">Educational Technology</span>
-                        </p>
-                        <p class="credit-line">
-                            <span class="credit-value">Beijing Normal University</span>
-                        </p>
+                        <p class="about-org" data-i18n="about-organization">Educational Technology, Beijing Normal University</p>
+                    </div>
+                    
+                    <div class="about-divider"></div>
+                    
+                    <div class="about-section">
+                        <h3 class="about-section-title"><span class="section-emoji">🚀</span> <span data-i18n="about-products">Our Products</span></h3>
+                        <div class="product-list">
+                            <div class="product-item">
+                                <span class="product-icon">🧑‍🏫</span>
+                                <span class="product-name">MindMate AI</span>
+                                <p class="product-desc" data-i18n="product-mindmate">Professional Teaching Development Educational Agent</p>
+                            </div>
+                            <div class="product-item">
+                                <span class="product-icon">🧠</span>
+                                <span class="product-name">MindGraph</span>
+                                <p class="product-desc" data-i18n="product-mindgraph">First AI-powered Thinking Maps Generation Software</p>
+                            </div>
+                        </div>
+                        <div class="partnership-message">
+                            <p data-i18n="partnership-message">We partner with schools to build customized education agents, assessments, and information platforms.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="about-divider"></div>
+                    
+                    <div class="about-section">
+                        <h3 class="about-section-title"><span class="section-emoji">📧</span> <span data-i18n="about-contact">Business Contact</span></h3>
+                        <p class="contact-name">熊雅雯 (Xiong Yawen)</p>
+                        <div class="qr-code-container">
+                            <img src="/static/wechat_qr.jpg" alt="WeChat QR Code" class="wechat-qr" />
+                            <p class="qr-label" data-i18n="scan-wechat">Scan to add on WeChat</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -236,6 +264,39 @@
                 </div>
                 <p class="share-success" id="shareSuccess" style="display: none;">
                     <span data-i18n="copy-success">✓ 链接已复制到剪贴板</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard Modal -->
+    <div id="leaderboardModal" class="modal">
+        <div class="modal-content leaderboard-modal">
+            <div class="modal-header">
+                <h2><span class="section-emoji">🏆</span> <span data-i18n="leaderboard-title">排行榜</span></h2>
+                <button class="modal-close" id="closeLeaderboardModal">&times;</button>
+            </div>
+            
+            <div class="leaderboard-filters">
+                <button class="filter-btn active" data-period="all" data-i18n="period-all">全部</button>
+                <button class="filter-btn" data-period="weekly" data-i18n="period-weekly">本周</button>
+                <button class="filter-btn" data-period="daily" data-i18n="period-daily">今日</button>
+            </div>
+            
+            <div class="leaderboard-content">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <span data-i18n="loading">加载中...</span>
+                </div>
+            </div>
+            
+            <div class="leaderboard-footer">
+                <p>
+                    <span data-i18n="leaderboard-footer-prefix">💡 想了解更多关于本应用的信息？点击</span>
+                    <a href="#" id="leaderboardAboutLink" class="about-link">
+                        <span data-i18n="leaderboard-footer-link">关于</span>
+                    </a>
+                    <span data-i18n="leaderboard-footer-suffix">按钮</span>
                 </p>
             </div>
         </div>

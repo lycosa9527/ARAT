@@ -596,6 +596,11 @@ async function submitScore(event) {
         // 重置游戏
         resetGame();
         
+        // 延迟显示排行榜 (给用户看到成绩通知的时间)
+        setTimeout(() => {
+            showLeaderboardModal();
+        }, 1500);
+        
     } catch (error) {
         console.error('Failed to submit score:', error);
         showNotification('成绩提交失败：' + error.message);
@@ -769,6 +774,120 @@ function copyShareLink() {
 }
 
 // ============================================================================
+// Leaderboard Modal
+// ============================================================================
+
+function showLeaderboardModal() {
+    document.getElementById('leaderboardModal').classList.add('show');
+    // Load default period (all)
+    loadLeaderboard('all');
+}
+
+function hideLeaderboardModal() {
+    document.getElementById('leaderboardModal').classList.remove('show');
+}
+
+async function loadLeaderboard(period = 'all') {
+    const content = document.querySelector('.leaderboard-content');
+    
+    // Show loading
+    content.innerHTML = `
+        <div class="loading">
+            <div class="spinner"></div>
+            <span data-i18n="loading">${t('loading')}</span>
+        </div>
+    `;
+    
+    try {
+        // Get current player name from localStorage
+        const playerName = localStorage.getItem('playerNickname') || '';
+        
+        // Fetch leaderboard data
+        const response = await fetch(`/api/leaderboard?period=${period}&limit=50&player_name=${encodeURIComponent(playerName)}`);
+        const data = await response.json();
+        
+        if (!data.leaderboard || data.leaderboard.length === 0) {
+            // Show empty state
+            content.innerHTML = `
+                <div class="leaderboard-empty">
+                    <div class="empty-icon">🏆</div>
+                    <p data-i18n="no-data">${t('no-data')}</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Build leaderboard table
+        let html = `
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th data-i18n="rank">${t('rank')}</th>
+                        <th data-i18n="player">${t('player')}</th>
+                        <th data-i18n="school">${t('school')}</th>
+                        <th data-i18n="score">${t('score')}</th>
+                        <th data-i18n="games">${t('games')}</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        data.leaderboard.forEach((entry) => {
+            const rowClass = entry.is_current_player ? 'current-player' : '';
+            let rankClass = 'rank-cell';
+            let rankDisplay = `#${entry.rank}`;
+            
+            // Special styling for top 3
+            if (entry.rank === 1) {
+                rankClass += ' top-1';
+                rankDisplay = '🥇';
+            } else if (entry.rank === 2) {
+                rankClass += ' top-2';
+                rankDisplay = '🥈';
+            } else if (entry.rank === 3) {
+                rankClass += ' top-3';
+                rankDisplay = '🥉';
+            }
+            
+            const schoolDisplay = entry.school_name || '-';
+            
+            html += `
+                <tr class="${rowClass}">
+                    <td class="${rankClass}">${rankDisplay}</td>
+                    <td class="player-cell">${escapeHtml(entry.player_name)}</td>
+                    <td class="school-cell">${escapeHtml(schoolDisplay)}</td>
+                    <td class="score-cell">${entry.best_score}</td>
+                    <td class="games-cell">${entry.games_played}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                </tbody>
+            </table>
+        `;
+        
+        content.innerHTML = html;
+        
+    } catch (error) {
+        console.error('Failed to load leaderboard:', error);
+        content.innerHTML = `
+            <div class="leaderboard-empty">
+                <div class="empty-icon">⚠️</div>
+                <p>Failed to load leaderboard</p>
+            </div>
+        `;
+    }
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ============================================================================
 // 事件监听器
 // ============================================================================
 
@@ -877,6 +996,28 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('closeShareModal').addEventListener('click', hideShareModal);
     document.getElementById('copyLinkBtn').addEventListener('click', copyShareLink);
     
+    // Leaderboard 按钮
+    document.getElementById('leaderboardBtn').addEventListener('click', showLeaderboardModal);
+    document.getElementById('closeLeaderboardModal').addEventListener('click', hideLeaderboardModal);
+    
+    // Leaderboard 期间筛选按钮
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Prevent event from bubbling to modal backdrop
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            const period = this.getAttribute('data-period');
+            loadLeaderboard(period);
+        });
+    });
+    
+    // Leaderboard footer - About link
+    document.getElementById('leaderboardAboutLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        hideLeaderboardModal(); // Close leaderboard modal
+        showAboutModal(); // Open about modal
+    });
+    
     // 点击模态框背景关闭
     document.getElementById('aboutModal').addEventListener('click', (e) => {
         if (e.target.id === 'aboutModal') {
@@ -887,6 +1028,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('shareModal').addEventListener('click', (e) => {
         if (e.target.id === 'shareModal') {
             hideShareModal();
+        }
+    });
+    
+    document.getElementById('leaderboardModal').addEventListener('click', (e) => {
+        if (e.target.id === 'leaderboardModal') {
+            hideLeaderboardModal();
         }
     });
 });
