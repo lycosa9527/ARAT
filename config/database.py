@@ -33,6 +33,36 @@ class GameRecord(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
     completed_at = Column(DateTime, nullable=True)
 
+class PuzzleHistory(Base):
+    """题目历史表 - 记录每个答题的详细信息"""
+    __tablename__ = "puzzle_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    puzzle_id = Column(String, index=True)  # 题目ID
+    session_id = Column(String, index=True)  # 所属会话ID
+    
+    # 题目内容
+    difficulty = Column(String, index=True)  # 难度等级
+    language = Column(String, index=True)  # 语言模式
+    
+    # 中文题目字段
+    char1 = Column(String, nullable=True)  # 字1
+    char2 = Column(String, nullable=True)  # 字2
+    pattern = Column(Integer, nullable=True)  # 模式 (1/2/3)
+    
+    # 英文题目字段
+    word1 = Column(String, nullable=True)  # 单词1
+    word2 = Column(String, nullable=True)  # 单词2
+    word3 = Column(String, nullable=True)  # 单词3
+    
+    # 答案和结果
+    correct_answer = Column(String)  # 正确答案
+    user_answer = Column(String, nullable=True)  # 用户答案
+    is_correct = Column(Integer, default=0)  # 是否正确 (0=错误, 1=正确, 2=跳过)
+    
+    # 时间戳
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
+
 # 数据库引擎和会话（延迟初始化）
 engine = None
 SessionLocal = None

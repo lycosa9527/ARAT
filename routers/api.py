@@ -11,10 +11,11 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from typing import Optional
+import asyncio
 
 from services.game_service import game_service
 from services.captcha_service import generate_captcha, verify_captcha, check_rate_limit
-from config.database import get_db, GameRecord
+from config.database import get_db, GameRecord, PuzzleHistory
 from config.logging_config import get_logger
 from config.settings import config
 from models.requests import (
@@ -22,6 +23,7 @@ from models.requests import (
     NextPuzzleRequest,
     ClearSessionRequest,
     ValidateAnswerRequest,
+    GetAnswerRequest,
     SubmitScoreRequest,
     DemoPasskeyRequest
 )
@@ -112,6 +114,35 @@ async def validate_answer(data: ValidateAnswerRequest):
 async def check_answer(data: ValidateAnswerRequest):
     """Alias for /game/validate"""
     return await validate_answer(data)
+
+@router.post("/game/get_answer")
+async def get_puzzle_answer(data: GetAnswerRequest):
+    """
+    获取题目答案 (用于跳过按钮和Demo模式)
+    
+    Args:
+        data: GetAnswerRequest with puzzle_id
+    
+    Returns:
+        Dict: {'answer': str}
+    """
+    try:
+        puzzle = game_service.active_puzzles.get(data.puzzle_id)
+        
+        if not puzzle:
+            logger.warning(f"Puzzle not found when getting answer | puzzle_id={data.puzzle_id}")
+            raise HTTPException(status_code=404, detail="题目不存在或已过期")
+        
+        logger.info(f"Answer retrieved | puzzle_id={data.puzzle_id} | answer={puzzle['answer']}")
+        
+        return {
+            'answer': puzzle['answer']
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get answer: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ============================================================================
 # Demo Endpoint (Development Only) - 需要密钥保护
@@ -387,4 +418,424 @@ async def get_share_url():
     return {
         "share_url": config.EXTERNAL_URL
     }
+
+# ============================================================================
+# Inventory Status Endpoint (Admin/Monitoring)
+# ============================================================================
+
+# Disabled: Inventory replenishment not implemented
+# @router.post("/admin/inventory_replenish")
+# async def trigger_inventory_replenish(difficulty: str = None, language: str = None, count: int = 100):
+#     """Disabled: Requires PuzzleInventory model and _replenish_inventory_batch method"""
+#     raise HTTPException(status_code=501, detail="Inventory management not implemented")
+
+@router.get("/admin/config_check")
+async def check_config():
+    """
+    检查当前配置（用于诊断）
+    
+    Returns:
+        Dict: 配置信息
+    """
+    from config.settings import config
+    import os
+    import time
+    
+    return {
+        'status': 'success',
+        'config': {
+            'DEMO_PASSKEY': config.DEMO_PASSKEY,
+            'DEMO_PASSKEY_from_env': os.environ.get('DEMO_PASSKEY', 'NOT_SET'),
+            'QWEN_API_KEY_configured': bool(config.QWEN_API_KEY),
+            'QWEN_API_KEY_length': len(config.QWEN_API_KEY) if config.QWEN_API_KEY else 0,
+            'cache_timestamp': config._cache_timestamp,
+            'cache_age_seconds': time.time() - config._cache_timestamp if config._cache_timestamp > 0 else 0
+        }
+    }
+
+# ============================================================================
+# Admin Panel Endpoints
+# ============================================================================
+
+@router.get("/admin/database/records")
+async def get_database_records(
+    limit: int = Query(100, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+    language: Optional[str] = Query(None),
+    difficulty: Optional[str] = Query(None),
+    db: Session = Depends(get_db)
+):
+    """
+    获取LLM生成的题库（Admin面板 - Database Manager）
+    显示puzzle_inventory表中的A+B=C格式，支持过滤
+    
+    Args:
+        limit: 返回记录数量
+        offset: 偏移量（分页）
+        language: 过滤语言 (zh/en)
+        difficulty: 过滤难度 (easy/medium/hard)
+        db: 数据库会话
+    
+    Returns:
+        Dict: 包含题目列表和总数
+    """
+    try:
+        # Query puzzle_inventory table directly
+        from sqlalchemy import text
+        
+        # Build WHERE clause based on filters
+        where_clauses = []
+        params = {"limit": limit, "offset": offset}
+        
+        if language:
+            where_clauses.append("language = :language")
+            params['language'] = language
+        
+        if difficulty:
+            where_clauses.append("difficulty = :difficulty")
+            params['difficulty'] = difficulty
+        
+        where_clause = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+        
+        # Get total count with filters
+        total_query = text(f"SELECT COUNT(*) FROM puzzle_inventory{where_clause}")
+        total = db.execute(total_query, {k: v for k, v in params.items() if k not in ['limit', 'offset']}).scalar()
+        
+        # Get puzzles with filters
+        puzzles_query = text(f"""
+            SELECT id, puzzle_id, difficulty, language, 
+                   char1, char2, pattern, word1_en, word2_en, word3_en,
+                   answer, is_used, created_at
+            FROM puzzle_inventory
+            {where_clause}
+            ORDER BY created_at DESC
+            LIMIT :limit OFFSET :offset
+        """)
+        
+        result = db.execute(puzzles_query, params)
+        puzzles = result.fetchall()
+        
+        # Convert to dict
+        puzzle_list = []
+        for p in puzzles:
+            if p.language == 'zh':
+                word_pair = f"{p.char1} + {p.char2}"
+                pattern_desc = f"Pattern {p.pattern}"
+            else:
+                word_pair = f"{p.word1_en}, {p.word2_en}, {p.word3_en}"
+                pattern_desc = "English"
+            
+            puzzle_list.append({
+                'id': p.id,
+                'puzzle_id': p.puzzle_id,
+                'difficulty': p.difficulty,
+                'language': p.language,
+                'word_pair': word_pair,
+                'pattern': pattern_desc,
+                'answer': p.answer,
+                'is_used': p.is_used,
+                'created_at': p.created_at
+            })
+        
+        logger.info(f"Admin: Retrieved {len(puzzle_list)} puzzle inventory records (total: {total})")
+        
+        return {
+            'status': 'success',
+            'total': total,
+            'limit': limit,
+            'offset': offset,
+            'puzzles': puzzle_list
+        }
+    except Exception as e:
+        logger.error(f"Failed to get puzzle inventory: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/admin/diversity/stats")
+async def get_diversity_stats(db: Session = Depends(get_db)):
+    """
+    获取题目多样性统计（Admin面板 - Inventory Status）
+    分析puzzle_inventory表中每个难度等级使用的字符/单词多样性
+    
+    Returns:
+        Dict: 多样性统计信息
+    """
+    try:
+        from sqlalchemy import text
+        stats_by_difficulty = {}
+        
+        # Analyze for each difficulty
+        for difficulty in ['easy', 'medium', 'hard']:
+            # Chinese puzzles
+            zh_query = text("""
+                SELECT char1, char2, answer 
+                FROM puzzle_inventory 
+                WHERE difficulty = :difficulty AND language = 'zh'
+            """)
+            zh_result = db.execute(zh_query, {"difficulty": difficulty})
+            zh_puzzles = zh_result.fetchall()
+            
+            # Count unique characters used
+            unique_chars = set()
+            for p in zh_puzzles:
+                if p.char1:
+                    unique_chars.add(p.char1)
+                if p.char2:
+                    unique_chars.add(p.char2)
+                if p.answer:
+                    unique_chars.add(p.answer)
+            
+            # English puzzles
+            en_query = text("""
+                SELECT word1_en, word2_en, word3_en, answer
+                FROM puzzle_inventory 
+                WHERE difficulty = :difficulty AND language = 'en'
+            """)
+            en_result = db.execute(en_query, {"difficulty": difficulty})
+            en_puzzles = en_result.fetchall()
+            
+            # Count unique words used
+            unique_words = set()
+            for p in en_puzzles:
+                if p.word1_en:
+                    unique_words.add(p.word1_en.lower())
+                if p.word2_en:
+                    unique_words.add(p.word2_en.lower())
+                if p.word3_en:
+                    unique_words.add(p.word3_en.lower())
+                if p.answer:
+                    unique_words.add(p.answer.lower())
+            
+            # Estimate total possible combinations
+            # Chinese: ~3000 common characters, English: ~1000 common words
+            zh_total_estimate = 3000
+            en_total_estimate = 1000
+            
+            zh_percentage = (len(unique_chars) / zh_total_estimate * 100) if zh_total_estimate > 0 else 0
+            en_percentage = (len(unique_words) / en_total_estimate * 100) if en_total_estimate > 0 else 0
+            
+            stats_by_difficulty[difficulty] = {
+                'chinese': {
+                    'unique_chars': len(unique_chars),
+                    'total_puzzles': len(zh_puzzles),
+                    'percentage': round(zh_percentage, 2),
+                    'diversity_score': 'High' if zh_percentage > 10 else 'Medium' if zh_percentage > 5 else 'Low'
+                },
+                'english': {
+                    'unique_words': len(unique_words),
+                    'total_puzzles': len(en_puzzles),
+                    'percentage': round(en_percentage, 2),
+                    'diversity_score': 'High' if en_percentage > 15 else 'Medium' if en_percentage > 8 else 'Low'
+                }
+            }
+        
+        logger.info(f"Admin: Diversity stats calculated from puzzle_inventory")
+        
+        return {
+            'status': 'success',
+            'stats_by_difficulty': stats_by_difficulty
+        }
+    except Exception as e:
+        logger.error(f"Failed to get diversity stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/admin/inventory/status")
+async def get_inventory_status():
+    """
+    获取库存状态（Admin面板 - Inventory Status）
+    显示当前活跃题目
+    
+    Returns:
+        Dict: 会话和题库统计信息
+    """
+    try:
+        sessions = game_service.game_sessions
+        puzzles = game_service.active_puzzles
+        
+        # Calculate stats
+        active_sessions = len(sessions)
+        cached_puzzles = len(puzzles)
+        total_queue_size = sum(len(s['puzzle_queue']) for s in sessions.values())
+        avg_queue_size = total_queue_size / active_sessions if active_sessions > 0 else 0
+        
+        # Get session details
+        session_list = []
+        for session_id, session_data in sessions.items():
+            session_list.append({
+                'session_id': session_id,
+                'difficulty': session_data.get('difficulty', 'unknown'),
+                'language': session_data.get('language', 'unknown'),
+                'queue_size': len(session_data['puzzle_queue']),
+                'created_at': session_data.get('created_at', 0)
+            })
+        
+        # Get sample of active puzzles (max 20 most recent)
+        puzzle_samples = []
+        sorted_puzzles = sorted(
+            puzzles.items(), 
+            key=lambda x: x[1].get('created_at', 0), 
+            reverse=True
+        )[:20]
+        
+        for puzzle_id, puzzle_data in sorted_puzzles:
+            if puzzle_data.get('language') == 'zh':
+                puzzle_samples.append({
+                    'puzzle_id': puzzle_id,
+                    'char1': puzzle_data.get('char1', '?'),
+                    'char2': puzzle_data.get('char2', '?'),
+                    'answer': puzzle_data.get('answer', '?'),
+                    'pattern': puzzle_data.get('pattern', 1),
+                    'language': 'zh',
+                    'difficulty': puzzle_data.get('difficulty', 'unknown')
+                })
+            else:
+                puzzle_samples.append({
+                    'puzzle_id': puzzle_id,
+                    'word1': puzzle_data.get('word1', '?'),
+                    'word2': puzzle_data.get('word2', '?'),
+                    'word3': puzzle_data.get('word3', '?'),
+                    'answer': puzzle_data.get('answer', '?'),
+                    'language': 'en',
+                    'difficulty': puzzle_data.get('difficulty', 'unknown')
+                })
+        
+        logger.info(f"Admin: Inventory status - {active_sessions} sessions, {cached_puzzles} puzzles")
+        
+        return {
+            'status': 'success',
+            'active_sessions': active_sessions,
+            'cached_puzzles': cached_puzzles,
+            'total_queue_size': total_queue_size,
+            'avg_queue_size': avg_queue_size,
+            'sessions': session_list,
+            'puzzle_samples': puzzle_samples
+        }
+    except Exception as e:
+        logger.error(f"Failed to get inventory status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# Puzzle Inventory Management Endpoints (Edit/Delete Database)
+# ============================================================================
+
+@router.post("/admin/puzzle_inventory/update")
+async def update_puzzle_inventory(request: Request, db: Session = Depends(get_db)):
+    """
+    更新puzzle_inventory表中的题目（Admin面板 - Database Manager）
+    
+    Args:
+        request: Request body containing puzzle id and updated fields
+        db: Database session
+    
+    Returns:
+        Dict: Success/failure status
+    """
+    try:
+        from sqlalchemy import text
+        data = await request.json()
+        puzzle_id = data.get('id')
+        
+        if not puzzle_id:
+            raise HTTPException(status_code=400, detail="id is required")
+        
+        # Build update query
+        updates = []
+        params = {"id": puzzle_id}
+        
+        if 'char1' in data:
+            updates.append("char1 = :char1")
+            params['char1'] = data['char1']
+        if 'char2' in data:
+            updates.append("char2 = :char2")
+            params['char2'] = data['char2']
+        if 'word1_en' in data:
+            updates.append("word1_en = :word1_en")
+            params['word1_en'] = data['word1_en']
+        if 'word2_en' in data:
+            updates.append("word2_en = :word2_en")
+            params['word2_en'] = data['word2_en']
+        if 'word3_en' in data:
+            updates.append("word3_en = :word3_en")
+            params['word3_en'] = data['word3_en']
+        if 'answer' in data:
+            updates.append("answer = :answer")
+            params['answer'] = data['answer']
+        
+        if not updates:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        
+        update_query = text(f"UPDATE puzzle_inventory SET {', '.join(updates)} WHERE id = :id")
+        db.execute(update_query, params)
+        db.commit()
+        
+        logger.info(f"Admin: Puzzle inventory updated | id={puzzle_id}")
+        
+        return {
+            'status': 'success',
+            'message': 'Puzzle updated successfully',
+            'id': puzzle_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to update puzzle inventory: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/admin/puzzle_inventory/delete")
+async def delete_puzzle_inventory(request: Request, db: Session = Depends(get_db)):
+    """
+    从puzzle_inventory表中删除题目（Admin面板 - Database Manager）
+    
+    Args:
+        request: Request body containing puzzle id
+        db: Database session
+    
+    Returns:
+        Dict: Success/failure status
+    """
+    try:
+        from sqlalchemy import text
+        data = await request.json()
+        puzzle_id = data.get('id')
+        
+        if not puzzle_id:
+            raise HTTPException(status_code=400, detail="id is required")
+        
+        delete_query = text("DELETE FROM puzzle_inventory WHERE id = :id")
+        result = db.execute(delete_query, {"id": puzzle_id})
+        db.commit()
+        
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Puzzle not found")
+        
+        logger.info(f"Admin: Puzzle inventory deleted | id={puzzle_id}")
+        
+        return {
+            'status': 'success',
+            'message': 'Puzzle deleted successfully',
+            'id': puzzle_id
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete puzzle inventory: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================================================
+# Inventory Admin Endpoints (Disabled - requires PuzzleInventory model)
+# ============================================================================
+# These endpoints are commented out because PuzzleInventory model doesn't exist
+# in the current database schema. They were meant for advanced puzzle inventory
+# management features that are not implemented yet.
+
+# @router.get("/admin/inventory_duplicates")
+# async def check_inventory_duplicates(db: Session = Depends(get_db)):
+#     """Disabled: Requires PuzzleInventory model"""
+#     raise HTTPException(status_code=501, detail="Inventory management not implemented")
+
+# @router.get("/admin/inventory_status")
+# async def get_inventory_status_old(db: Session = Depends(get_db)):
+#     """Disabled: Requires PuzzleInventory model"""
+#     raise HTTPException(status_code=501, detail="Inventory management not implemented")
 

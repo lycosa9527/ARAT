@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARAT - Admin Panel</title>
+    <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        /* Admin Panel Styles */
+        body.admin-mode {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        /* Passkey Authentication */
+        .passkey-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .passkey-overlay.hidden {
+            display: none;
+        }
+
+        .passkey-box {
+            background: white;
+            border-radius: 24px;
+            padding: 3rem 2.5rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .passkey-box h2 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+            font-size: 1.75rem;
+            color: #1e293b;
+        }
+
+        .passkey-box p {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 2rem;
+        }
+
+        .passkey-input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.5rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.3s;
+            margin-bottom: 1.5rem;
+        }
+
+        .passkey-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .passkey-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .passkey-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .passkey-hint {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        /* Admin Container */
+        .admin-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .admin-header {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-header h1 {
+            margin: 0;
+            font-size: 1.75rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .admin-badge {
+            background: linear-gradient(135deg, #f5576c, #ff6b7a);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 1rem;
+            background: white;
+            border-radius: 12px;
+            padding: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 1rem 1.5rem;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tab-btn:hover {
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .tab-btn.active {
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .tab-btn::before {
+            content: attr(data-icon);
+            margin-right: 0.5rem;
+            font-size: 1.2em;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Panel Sections */
+        .panel-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .btn-refresh {
+            padding: 0.5rem 1rem;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-refresh:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .btn-find {
+            padding: 0.65rem 1.75rem;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            letter-spacing: 0.3px;
+        }
+
+        .btn-find:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-find:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+        }
+
+        /* Database Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .data-table th {
+            background: #f8fafc;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .data-table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .data-table tr:hover {
+            background: #f8fafc;
+        }
+
+        /* Pagination */
+        .pagination-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid #f1f5f9;
+        }
+
+        .pagination-info {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .pagination-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .page-btn {
+            padding: 0.5rem 0.75rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .page-btn:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .page-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .records-per-page {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .records-per-page select {
+            padding: 0.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Puzzle preview */
+        .puzzle-preview {
+            font-family: 'Courier New', monospace;
+            background: #f8fafc;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            color: #667eea;
+        }
+
+        .puzzle-answer {
+            background: #10b981;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 700;
+        }
+
+        /* Filters */
+        .filter-bar {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-label {
+            font-weight: 600;
+            color: #475569;
+            font-size: 0.875rem;
+        }
+
+        .filter-select {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            background: white;
+            transition: all 0.2s;
+            min-width: 120px;
+        }
+
+        .filter-select:hover {
+            border-color: #667eea;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-clear-filter {
+            padding: 0.65rem 1.25rem;
+            background: #f1f5f9;
+            color: #64748b;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-clear-filter:hover {
+            background: #e2e8f0;
+            border-color: #cbd5e1;
+            color: #475569;
+            transform: translateY(-1px);
+        }
+
+        .btn-clear-filter:active {
+            transform: translateY(0);
+        }
+
+        #recordCount .spinner {
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        /* Action buttons */
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-action {
+            padding: 0.375rem 0.75rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.813rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-edit {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+
+        /* Modal for editing */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: #1e293b;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #475569;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-modal {
+            flex: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-modal-save {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-modal-save:hover {
+            background: #764ba2;
+        }
+
+        .btn-modal-cancel {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .btn-modal-cancel:hover {
+            background: #cbd5e1;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.1);
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        /* Loading Spinner */
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+
+        .spinner {
+            border: 3px solid #f1f5f9;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Game Demo Section */
+        #gameDemoContent {
+            min-height: 500px;
+        }
+
+        .demo-game-container {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 2rem;
+        }
+    </style>
+</head>
+<body class="admin-mode">
+    <!-- Passkey Authentication -->
+    <div id="passkeyOverlay" class="passkey-overlay">
+        <div class="passkey-box">
+            <h2>🔐 Admin Access</h2>
+            <p>Enter 6-digit passkey</p>
+            <input 
+                type="password" 
+                id="passkeyInput" 
+                class="passkey-input" 
+                placeholder="••••••" 
+                maxlength="6"
+                autofocus
+            />
+            <button onclick="verifyPasskey()" class="passkey-btn">
+                Access Admin Panel
+            </button>
+            <p class="passkey-hint">
+                Default: <strong>888888</strong><br>
+                Configure in .env (DEMO_PASSKEY)
+            </p>
+        </div>
+    </div>
+
+    <!-- Edit Puzzle Modal -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 class="modal-title">✏️ Edit Puzzle</h2>
+            <div id="modalForm">
+                <!-- Form will be generated dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel" style="display: none;">
+        <div class="admin-container">
+            <!-- Header -->
+            <div class="admin-header">
+                <h1>🎮 ARAT Admin Panel</h1>
+                <span class="admin-badge">ADMIN MODE</span>
+            </div>
+
+            <!-- Tab Navigation -->
+            <div class="tab-nav">
+                <button class="tab-btn active" data-icon="📊" onclick="switchTab('database')">
+                    Database Manager
+                </button>
+                <button class="tab-btn" data-icon="📦" onclick="switchTab('inventory')">
+                    Inventory Status
+                </button>
+                <button class="tab-btn" data-icon="🎮" onclick="switchTab('demo')">
+                    Game Demo
+                </button>
+            </div>
+
+            <!-- Tab Contents -->
+            
+            <!-- Database Manager -->
+            <div id="databaseContent" class="tab-content active">
+                <div class="panel-section">
+                    <!-- Static Filter Bar (loads immediately) -->
+                    <div class="filter-bar">
+                        <div class="filter-group">
+                            <span class="filter-label">🌐 Language:</span>
+                            <select class="filter-select" id="languageFilter">
+                                <option value="all">All Languages</option>
+                                <option value="zh">🇨🇳 Chinese</option>
+                                <option value="en">🇬🇧 English</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <span class="filter-label">⚡ Difficulty:</span>
+                            <select class="filter-select" id="difficultyFilter">
+                                <option value="all">All Levels</option>
+                                <option value="easy">Easy</option>
+                                <option value="medium">Medium</option>
+                                <option value="hard">Hard</option>
+                            </select>
+                        </div>
+                        
+                        <button class="btn-find" onclick="applyFiltersAndSearch()">
+                            🔍 Find Puzzles
+                        </button>
+                        
+                        <button class="btn-clear-filter" onclick="clearFilters()">
+                            ✖️ Clear
+                        </button>
+                        
+                        <div style="margin-left: auto; color: #64748b; font-weight: 600;" id="recordCount">
+                            Select filters and click Find
+                        </div>
+                    </div>
+                    
+                    <!-- Dynamic Data Table (loads via API) -->
+                    <div id="databaseTable">
+                        <p style="text-align: center; color: #64748b; padding: 5rem;">
+                            <span style="font-size: 4rem; display: block; margin-bottom: 1rem;">🔍</span>
+                            <span style="font-size: 1.25rem; font-weight: 600; display: block; margin-bottom: 0.5rem;">Ready to Search!</span>
+                            Select your filters above and click <strong style="color: #10b981;">"Find Puzzles"</strong> to load data
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Status -->
+            <div id="inventoryContent" class="tab-content">
+                <div class="panel-section">
+                    <div class="section-header">
+                        <h2 class="section-title">📊 Puzzle Diversity Analysis</h2>
+                        <button class="btn-refresh" onclick="loadInventoryStatus()">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                    <p style="color: #64748b; margin-bottom: 1.5rem;">
+                        Analyze word/character diversity across difficulty levels to ensure varied puzzles. Higher percentages mean more diverse vocabulary usage.
+                    </p>
+                    <div id="diversityStats">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Loading diversity analysis...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Demo -->
+            <div id="gameDemoContent" class="tab-content">
+                <div class="panel-section">
+                    <h2 class="section-title">Game Demo Mode</h2>
+                    <p style="color: #64748b; margin-bottom: 1.5rem;">
+                        Play the game with answers visible for testing and debugging.
+                    </p>
+                    <div class="demo-game-container">
+                        <iframe 
+                            src="/demo" 
+                            style="width: 100%; height: 800px; border: none; border-radius: 8px; background: white;"
+                            title="Game Demo"
+                            allow="clipboard-write"
+                            loading="lazy"
+                        ></iframe>
+                    </div>
+                    <p style="color: #94a3b8; margin-top: 1rem; text-align: center; font-size: 0.85rem;">
+                        ℹ️ If the demo doesn't load, open <a href="/demo" target="_blank" style="color: #667eea;">Demo Mode in New Tab</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Passkey verification
+        function verifyPasskey() {
+            const passkey = document.getElementById('passkeyInput').value;
+            
+            if (passkey === '888888') {
+                document.getElementById('passkeyOverlay').classList.add('hidden');
+                document.getElementById('adminPanel').style.display = 'block';
+                sessionStorage.setItem('adminAuth', 'true');
+                
+                // Don't auto-load, wait for user to click Find button
+            } else {
+                alert('❌ Invalid passkey');
+                document.getElementById('passkeyInput').value = '';
+            }
+        }
+
+        // Check if already authenticated
+        if (sessionStorage.getItem('adminAuth') === 'true') {
+            document.getElementById('passkeyOverlay').classList.add('hidden');
+            document.getElementById('adminPanel').style.display = 'block';
+            // Don't auto-load, wait for user to click Find button
+        }
+
+        // Enter key support
+        document.getElementById('passkeyInput')?.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') verifyPasskey();
+        });
+
+        // Tab switching
+        function switchTab(tabName) {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}Content`).classList.add('active');
+            
+            // Load data for inventory tab (database tab requires manual Find button click)
+            if (tabName === 'inventory') {
+                loadInventoryStatus();
+            }
+        }
+
+        // Pagination and filter state
+        let currentPage = 1;
+        let recordsPerPage = 25;
+        let totalRecords = 0;
+        let currentFilters = {
+            language: 'all',
+            difficulty: 'all'
+        };
+
+        // Load database records with pagination and filters
+        async function loadDatabaseRecords(page = 1) {
+            currentPage = page;
+            const container = document.getElementById('databaseTable');
+            container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading...</div>';
+            
+            const offset = (page - 1) * recordsPerPage;
+            
+            // Build query string with filters
+            let queryParams = `limit=${recordsPerPage}&offset=${offset}`;
+            if (currentFilters.language !== 'all') {
+                queryParams += `&language=${currentFilters.language}`;
+            }
+            if (currentFilters.difficulty !== 'all') {
+                queryParams += `&difficulty=${currentFilters.difficulty}`;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/database/records?${queryParams}`);
+                const data = await response.json();
+                
+                totalRecords = data.total || 0;
+                
+                // Update record count in the static filter bar
+                const recordCount = document.getElementById('recordCount');
+                if (recordCount) {
+                    recordCount.innerHTML = `Showing: ${data.total} puzzles`;
+                }
+                
+                if (data.puzzles && data.puzzles.length > 0) {
+                    let html = `
+                        <h3 style="margin-bottom: 1rem; color: #1e293b;">
+                            📚 Puzzle Inventory (A + B = C Format)
+                        </h3>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 8%;">ID</th>
+                                    <th style="width: 12%;">Difficulty</th>
+                                    <th style="width: 10%;">Language</th>
+                                    <th style="width: 30%;">Word Pair (A + B)</th>
+                                    <th style="width: 15%;">Answer (C)</th>
+                                    <th style="width: 10%;">Status</th>
+                                    <th style="width: 15%;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    data.puzzles.forEach(puzzle => {
+                        const statusBadge = puzzle.is_used 
+                            ? '<span style="background: #10b981; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">✓ Used</span>'
+                            : '<span style="background: #94a3b8; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem;">New</span>';
+                        
+                        html += `
+                            <tr>
+                                <td>#${puzzle.id}</td>
+                                <td><span style="background: #667eea; color: white; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600;">${puzzle.difficulty}</span></td>
+                                <td><span style="background: #f59e0b; color: white; padding: 0.25rem 0.75rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600;">${puzzle.language.toUpperCase()}</span></td>
+                                <td><div class="puzzle-preview" style="font-size: 1.05rem; font-weight: 600;">${puzzle.word_pair}</div></td>
+                                <td><span class="puzzle-answer" style="font-size: 1.2rem;">${puzzle.answer}</span></td>
+                                <td>${statusBadge}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn-action btn-edit" onclick='editInventoryPuzzle(${JSON.stringify(puzzle)})' style="font-size: 0.75rem; padding: 0.35rem 0.6rem;">
+                                            ✏️ Edit
+                                        </button>
+                                        <button class="btn-action btn-delete" onclick='deleteInventoryPuzzle(${puzzle.id})' style="font-size: 0.75rem; padding: 0.35rem 0.6rem;">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += '</tbody></table>';
+                    
+                    // Add pagination controls
+                    html += buildPaginationControls(data.total, page);
+                    
+                    container.innerHTML = html;
+                } else {
+                    // Update count
+                    const recordCount = document.getElementById('recordCount');
+                    if (recordCount) {
+                        recordCount.innerHTML = `Showing: 0 puzzles`;
+                    }
+                    
+                    container.innerHTML = `
+                        <p style="text-align: center; color: #64748b; padding: 3rem;">
+                            <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">📭</span>
+                            No puzzles found with current filters<br>
+                            <span style="font-size: 0.875rem;">Try adjusting your filters</span>
+                        </p>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error loading database:', error);
+                container.innerHTML = '<p style="text-align: center; color: #ef4444; padding: 2rem;">❌ Error loading database records</p>';
+            }
+        }
+
+        // Apply filters and search (triggered by Find button)
+        function applyFiltersAndSearch() {
+            const languageFilter = document.getElementById('languageFilter');
+            const difficultyFilter = document.getElementById('difficultyFilter');
+            
+            if (languageFilter) currentFilters.language = languageFilter.value;
+            if (difficultyFilter) currentFilters.difficulty = difficultyFilter.value;
+            
+            loadDatabaseRecords(1); // Reset to page 1 when filtering
+        }
+
+        // Apply filters (for pagination navigation)
+        function applyFilters() {
+            loadDatabaseRecords(currentPage);
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            currentFilters.language = 'all';
+            currentFilters.difficulty = 'all';
+            
+            const languageFilter = document.getElementById('languageFilter');
+            const difficultyFilter = document.getElementById('difficultyFilter');
+            if (languageFilter) languageFilter.value = 'all';
+            if (difficultyFilter) difficultyFilter.value = 'all';
+            
+            // Reset to initial search state
+            const recordCount = document.getElementById('recordCount');
+            if (recordCount) {
+                recordCount.innerHTML = 'Select filters and click Find';
+            }
+            
+            document.getElementById('databaseTable').innerHTML = `
+                <p style="text-align: center; color: #64748b; padding: 5rem;">
+                    <span style="font-size: 4rem; display: block; margin-bottom: 1rem;">🔍</span>
+                    <span style="font-size: 1.25rem; font-weight: 600; display: block; margin-bottom: 0.5rem;">Ready to Search!</span>
+                    Select your filters above and click <strong style="color: #10b981;">"Find Puzzles"</strong> to load data
+                </p>
+            `;
+        }
+
+        // Build pagination controls
+        function buildPaginationControls(total, currentPage) {
+            const totalPages = Math.ceil(total / recordsPerPage);
+            const start = (currentPage - 1) * recordsPerPage + 1;
+            const end = Math.min(currentPage * recordsPerPage, total);
+            
+            let html = `
+                <div class="pagination-controls">
+                    <div class="pagination-info">
+                        Showing ${start}-${end} of ${total} records
+                    </div>
+                    
+                    <div class="records-per-page">
+                        <span>Records per page:</span>
+                        <select onchange="changeRecordsPerPage(this.value)">
+                            <option value="25" ${recordsPerPage === 25 ? 'selected' : ''}>25</option>
+                            <option value="50" ${recordsPerPage === 50 ? 'selected' : ''}>50</option>
+                            <option value="100" ${recordsPerPage === 100 ? 'selected' : ''}>100</option>
+                        </select>
+                    </div>
+                    
+                    <div class="pagination-buttons">
+                        <button class="page-btn" onclick="loadDatabaseRecords(1)" ${currentPage === 1 ? 'disabled' : ''}>
+                            « First
+                        </button>
+                        <button class="page-btn" onclick="loadDatabaseRecords(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                            ‹ Prev
+                        </button>
+            `;
+            
+            // Page numbers (show max 5 pages)
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + 4);
+            
+            if (endPage - startPage < 4) {
+                startPage = Math.max(1, endPage - 4);
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `
+                    <button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="loadDatabaseRecords(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+            
+            html += `
+                        <button class="page-btn" onclick="loadDatabaseRecords(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                            Next ›
+                        </button>
+                        <button class="page-btn" onclick="loadDatabaseRecords(${totalPages})" ${currentPage === totalPages ? 'disabled' : ''}>
+                            Last »
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            return html;
+        }
+
+        // Change records per page
+        function changeRecordsPerPage(value) {
+            recordsPerPage = parseInt(value);
+            loadDatabaseRecords(1); // Reset to page 1
+        }
+
+        // Load inventory status (Diversity Analysis only)
+        async function loadInventoryStatus() {
+            const diversityContainer = document.getElementById('diversityStats');
+            diversityContainer.innerHTML = '<div class="loading"><div class="spinner"></div>Loading diversity analysis...</div>';
+            
+            try {
+                const diversityResponse = await fetch('/api/admin/diversity/stats');
+                const diversityData = await diversityResponse.json();
+                
+                if (diversityData.stats_by_difficulty) {
+                    let html = '';
+                    
+                    for (const [difficulty, stats] of Object.entries(diversityData.stats_by_difficulty)) {
+                        const zhScore = stats.chinese.diversity_score;
+                        const enScore = stats.english.diversity_score;
+                        const zhColor = zhScore === 'High' ? '#10b981' : zhScore === 'Medium' ? '#f59e0b' : '#ef4444';
+                        const enColor = enScore === 'High' ? '#10b981' : enScore === 'Medium' ? '#f59e0b' : '#ef4444';
+                        
+                        html += `
+                            <div style="border: 2px solid #e2e8f0; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);">
+                                <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem; color: #667eea; text-transform: uppercase;">
+                                    ${difficulty}
+                                </h3>
+                                
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                                    <!-- Chinese Stats -->
+                                    <div style="background: white; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                                            <span style="font-size: 1.5rem; margin-right: 0.5rem;">🇨🇳</span>
+                                            <strong style="font-size: 1.1rem; color: #1e293b;">Chinese</strong>
+                                        </div>
+                                        
+                                        <div style="margin-bottom: 0.75rem;">
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                                <span style="color: #64748b; font-size: 0.875rem;">Unique Characters</span>
+                                                <strong style="color: #1e293b;">${stats.chinese.unique_chars}</strong>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                                <span style="color: #64748b; font-size: 0.875rem;">Total Puzzles</span>
+                                                <strong style="color: #1e293b;">${stats.chinese.total_puzzles}</strong>
+                                            </div>
+                                        </div>
+                                        
+                                        <div style="background: #f1f5f9; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.75rem;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <span style="font-weight: 600; color: #475569;">Coverage:</span>
+                                                <span style="font-size: 1.5rem; font-weight: 700; color: ${zhColor};">${stats.chinese.percentage}%</span>
+                                            </div>
+                                            <div style="margin-top: 0.5rem; background: #e2e8f0; border-radius: 4px; height: 8px; overflow: hidden;">
+                                                <div style="height: 100%; background: ${zhColor}; width: ${Math.min(stats.chinese.percentage, 100)}%; transition: width 0.5s;"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div style="text-align: center; padding: 0.5rem; background: ${zhColor}; color: white; border-radius: 6px; font-weight: 700;">
+                                            ${stats.chinese.diversity_score} Diversity
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- English Stats -->
+                                    <div style="background: white; border-radius: 8px; padding: 1.25rem; border: 1px solid #e2e8f0;">
+                                        <div style="display: flex; align-items: center; margin-bottom: 1rem;">
+                                            <span style="font-size: 1.5rem; margin-right: 0.5rem;">🇬🇧</span>
+                                            <strong style="font-size: 1.1rem; color: #1e293b;">English</strong>
+                                        </div>
+                                        
+                                        <div style="margin-bottom: 0.75rem;">
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                                <span style="color: #64748b; font-size: 0.875rem;">Unique Words</span>
+                                                <strong style="color: #1e293b;">${stats.english.unique_words}</strong>
+                                            </div>
+                                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                                <span style="color: #64748b; font-size: 0.875rem;">Total Puzzles</span>
+                                                <strong style="color: #1e293b;">${stats.english.total_puzzles}</strong>
+                                            </div>
+                                        </div>
+                                        
+                                        <div style="background: #f1f5f9; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.75rem;">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <span style="font-weight: 600; color: #475569;">Coverage:</span>
+                                                <span style="font-size: 1.5rem; font-weight: 700; color: ${enColor};">${stats.english.percentage}%</span>
+                                            </div>
+                                            <div style="margin-top: 0.5rem; background: #e2e8f0; border-radius: 4px; height: 8px; overflow: hidden;">
+                                                <div style="height: 100%; background: ${enColor}; width: ${Math.min(stats.english.percentage, 100)}%; transition: width 0.5s;"></div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div style="text-align: center; padding: 0.5rem; background: ${enColor}; color: white; border-radius: 6px; font-weight: 700;">
+                                            ${stats.english.diversity_score} Diversity
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    diversityContainer.innerHTML = html;
+                }
+            } catch (error) {
+                console.error('Error loading diversity stats:', error);
+                diversityContainer.innerHTML = '<p style="text-align: center; color: #ef4444; padding: 2rem;">❌ Error loading diversity stats</p>';
+            }
+        }
+
+        // Edit inventory puzzle
+        function editInventoryPuzzle(puzzle) {
+            const modal = document.getElementById('editModal');
+            const modalForm = document.getElementById('modalForm');
+            
+            let formHTML = '';
+            if (puzzle.language === 'zh') {
+                const parts = puzzle.word_pair.split(' + ');
+                formHTML = `
+                    <div class="form-group">
+                        <label class="form-label">Character 1 (字1)</label>
+                        <input type="text" id="edit_char1" class="form-input" value="${parts[0] || ''}" maxlength="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Character 2 (字2)</label>
+                        <input type="text" id="edit_char2" class="form-input" value="${parts[1] || ''}" maxlength="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Answer (答案)</label>
+                        <input type="text" id="edit_answer" class="form-input" value="${puzzle.answer}" maxlength="1">
+                    </div>
+                `;
+            } else {
+                const parts = puzzle.word_pair.split(', ');
+                formHTML = `
+                    <div class="form-group">
+                        <label class="form-label">Word 1</label>
+                        <input type="text" id="edit_word1" class="form-input" value="${parts[0] || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Word 2</label>
+                        <input type="text" id="edit_word2" class="form-input" value="${parts[1] || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Word 3</label>
+                        <input type="text" id="edit_word3" class="form-input" value="${parts[2] || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Answer</label>
+                        <input type="text" id="edit_answer" class="form-input" value="${puzzle.answer}">
+                    </div>
+                `;
+            }
+            
+            formHTML += `
+                <div class="modal-buttons">
+                    <button class="btn-modal btn-modal-save" onclick='saveInventoryPuzzle(${puzzle.id}, "${puzzle.language}")'>
+                        💾 Save Changes
+                    </button>
+                    <button class="btn-modal btn-modal-cancel" onclick="closeModal()">
+                        ✖️ Cancel
+                    </button>
+                </div>
+            `;
+            
+            modalForm.innerHTML = formHTML;
+            modal.classList.add('active');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('active');
+        }
+
+        // Save inventory puzzle
+        async function saveInventoryPuzzle(puzzleId, language) {
+            const updates = { id: puzzleId };
+            
+            if (language === 'zh') {
+                updates.char1 = document.getElementById('edit_char1').value;
+                updates.char2 = document.getElementById('edit_char2').value;
+                updates.answer = document.getElementById('edit_answer').value;
+            } else {
+                updates.word1_en = document.getElementById('edit_word1').value;
+                updates.word2_en = document.getElementById('edit_word2').value;
+                updates.word3_en = document.getElementById('edit_word3').value;
+                updates.answer = document.getElementById('edit_answer').value;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/puzzle_inventory/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updates)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert('✅ Puzzle updated successfully!');
+                    closeModal();
+                    loadDatabaseRecords(currentPage);
+                } else {
+                    alert('❌ Failed to update puzzle: ' + (result.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error updating puzzle:', error);
+                alert('❌ Error updating puzzle: ' + error.message);
+            }
+        }
+
+        // Delete inventory puzzle
+        async function deleteInventoryPuzzle(puzzleId) {
+            if (!confirm('Are you sure you want to delete this puzzle from the inventory?\n\nThis action cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/puzzle_inventory/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: puzzleId })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert('✅ Puzzle deleted successfully!');
+                    loadDatabaseRecords(currentPage);
+                } else {
+                    alert('❌ Failed to delete puzzle: ' + (result.detail || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error deleting puzzle:', error);
+                alert('❌ Error deleting puzzle: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>
+

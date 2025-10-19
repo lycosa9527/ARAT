@@ -9,6 +9,32 @@
  */
 
 /* ============================================================================
+   动画效果
+   ============================================================================ */
+
+@keyframes slideUp {
+    from {
+        transform: translateX(-50%) translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(-50%) translateY(20px);
+        opacity: 0;
+    }
+}
+
+/* ============================================================================
    全局样式 & 重置
    ============================================================================ */
 
@@ -511,6 +537,13 @@ body {
     outline: none;
 }
 
+/* Ensure text is visible even when disabled */
+.answer-box input:disabled {
+    color: var(--text-color);
+    opacity: 1;
+    -webkit-text-fill-color: var(--text-color);
+}
+
 /* Focus state with enhanced glow */
 .answer-box:has(input:focus) {
     box-shadow: 
@@ -520,28 +553,47 @@ body {
     transform: translateY(-2px) scale(1.02);
 }
 
-/* Correct answer - Success animation */
+/* Correct answer - Success animation - STAYS VISIBLE! */
 .answer-box.correct {
     background-image: 
-        linear-gradient(135deg, #4facfe20 0%, #00f2fe20 100%),
-        linear-gradient(135deg, #4facfe, #00f2fe);
-    animation: successPulse 0.8s ease-in-out, successGlow 1s ease-out;
+        linear-gradient(135deg, #10b98120 0%, #34d39920 100%),
+        linear-gradient(135deg, #10b981, #34d399) !important;
+    /* Override all inherited animations - only use successPulse */
+    animation: successPulse 0.6s ease-in-out !important;
     
     box-shadow: 
-        0 0 40px rgba(79, 172, 254, 0.6),
-        0 8px 32px rgba(0, 242, 254, 0.4),
-        inset 0 0 30px rgba(79, 172, 254, 0.3);
+        0 0 40px rgba(16, 185, 129, 0.8),
+        0 8px 32px rgba(52, 211, 153, 0.6),
+        inset 0 0 30px rgba(16, 185, 129, 0.4) !important;
+    
+    /* CRITICAL: Keep it fully visible and in place! */
+    opacity: 1 !important;
+    transform: translateY(0) scale(1.05) !important;
+    display: flex !important;
+    visibility: visible !important;
+}
+
+/* Make the input text VERY visible when answer is shown */
+.answer-box.correct input {
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #ffffff !important;
 }
 
 @keyframes successPulse {
     0%, 100% { 
-        transform: scale(1); 
+        transform: scale(1);
+        opacity: 1;
     }
     25% { 
-        transform: scale(1.1) rotate(2deg); 
+        transform: scale(1.1) rotate(2deg);
+        opacity: 1;
     }
     75% { 
-        transform: scale(1.05) rotate(-2deg); 
+        transform: scale(1.05) rotate(-2deg);
+        opacity: 1;
     }
 }
 
@@ -616,15 +668,173 @@ body {
 .game-controls {
     display: flex;
     justify-content: center;
-    gap: 1.5rem;
+    gap: 1rem;
     flex-wrap: wrap;
-    max-width: 500px;
+    max-width: 600px;
     margin: 0 auto;
+    padding: 0 1rem;
 }
 
 .game-controls button {
     flex: 1;
-    min-width: 200px;
+    min-width: 150px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Primary button (Submit) - Elegant pulse animation */
+.game-controls .btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    animation: gentlePulse 2s ease-in-out infinite;
+    box-shadow: 
+        0 4px 15px rgba(102, 126, 234, 0.4),
+        0 2px 8px rgba(118, 75, 162, 0.3);
+}
+
+@keyframes gentlePulse {
+    0%, 100% {
+        box-shadow: 
+            0 4px 15px rgba(102, 126, 234, 0.4),
+            0 2px 8px rgba(118, 75, 162, 0.3);
+    }
+    50% {
+        box-shadow: 
+            0 6px 20px rgba(102, 126, 234, 0.6),
+            0 3px 12px rgba(118, 75, 162, 0.4);
+    }
+}
+
+/* Skip button - Subtle bounce on hover */
+.game-controls .btn-secondary:nth-child(2) {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    color: white;
+    border: none;
+    box-shadow: 
+        0 4px 12px rgba(245, 87, 108, 0.3),
+        0 2px 6px rgba(240, 147, 251, 0.2);
+}
+
+.game-controls .btn-secondary:nth-child(2):hover {
+    transform: translateY(-3px);
+    box-shadow: 
+        0 8px 20px rgba(245, 87, 108, 0.4),
+        0 4px 10px rgba(240, 147, 251, 0.3);
+}
+
+/* Finish button - Elegant dark theme */
+.game-controls .btn-secondary:nth-child(3) {
+    background: linear-gradient(135deg, #434343 0%, #000000 100%);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 
+        0 4px 12px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.game-controls .btn-secondary:nth-child(3):hover {
+    background: linear-gradient(135deg, #505050 0%, #1a1a1a 100%);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-3px);
+    box-shadow: 
+        0 8px 20px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Ripple effect on click */
+.game-controls button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.game-controls button:active::after {
+    width: 300px;
+    height: 300px;
+    transition: width 0s, height 0s;
+}
+
+/* Icon indicators (using Unicode) */
+.game-controls button span::before {
+    margin-right: 0.5rem;
+    font-weight: 600;
+}
+
+#submitAnswerBtn span::before {
+    content: '✓ ';
+}
+
+#skipBtn span::before {
+    content: '⏭ ';
+}
+
+#finishBtn span::before {
+    content: '⏹ ';
+}
+
+/* Disabled state - elegant fade */
+.game-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: grayscale(0.3);
+    animation: none;
+}
+
+.game-controls button:disabled:hover {
+    transform: none;
+}
+
+/* Loading animation for start button */
+.btn-large:disabled {
+    opacity: 0.7 !important;
+    cursor: wait !important;
+    animation: pulseLoading 1.5s ease-in-out infinite !important;
+}
+
+@keyframes pulseLoading {
+    0%, 100% {
+        opacity: 0.7;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.85;
+        transform: scale(1.02);
+    }
+}
+
+/* Notification Area (below hint text) */
+.notification-area {
+    min-height: 60px;
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-area .inline-notification {
+    position: relative !important;
+    left: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    animation: fadeInScale 0.3s ease !important;
+    margin: 0;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
 }
 
 /* ============================================================================
@@ -1204,11 +1414,20 @@ body {
     .game-controls {
         flex-direction: column;
         max-width: 100%;
+        gap: 0.75rem;
     }
     
     .game-controls button {
         width: 100%;
         min-width: auto;
+        padding: 1rem 1.5rem;
+        font-size: 1.1rem;
+    }
+    
+    /* Stack buttons vertically on mobile with nice spacing */
+    .game-controls button span::before {
+        margin-right: 0.75rem;
+        font-size: 1.2em;
     }
 }
 

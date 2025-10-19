@@ -255,14 +255,11 @@ class GameService:
             # 更新时间戳
             self.session_timestamps[session_id] = time.time()
         
-        # 生成第一题 (立即返回)
+        # 生成第一题 (立即返回，不加入队列)
         first_puzzle = await self._generate_single_puzzle(difficulty, language, llm)
         
-        # 将第一题加入队列
-        async with self.queue_lock:
-            self.active_sessions[session_id]['puzzle_queue'].append(first_puzzle)
-        
-        # 异步预生成5题 (catapult机制)
+        # 异步预生成5题到队列 (不包含第一题)
+        # 第一题已经显示在前端，队列中应该是后续的题目
         asyncio.create_task(self._prefetch_puzzles(session_id, 5))
         
         logger.info(f"Game session started | session_id={session_id} | first_puzzle={first_puzzle['puzzle_id']}")
@@ -369,13 +366,41 @@ class GameService:
         try:
             # 选择提示词和随机pattern
             import random
+            
+            # 主题列表 - 强制多样性
+            themes_zh = [
+                "自然景物（山、水、风、云等）",
+                "人物关系（父、母、兄、弟等）", 
+                "时间概念（春、夏、秋、冬、早、晚等）",
+                "颜色（红、黄、蓝、绿等）",
+                "方位（上、下、左、右、东、西等）",
+                "身体部位（手、足、心、头等）",
+                "日常物品（书、笔、纸、桌等）",
+                "动植物（花、草、树、木等）",
+                "天气（晴、雨、雪、霜等）",
+                "情感（喜、怒、哀、乐等）",
+                "建筑（门、窗、房、院等）",
+                "学习（学、教、读、写等）"
+            ]
+            
             if language == 'zh':
-                pattern = random.choice([1, 2, 3])  # 随机选择pattern
+                pattern = random.choice([1, 2, 3])
+                theme = random.choice(themes_zh)  # 随机选择主题
                 system_prompt = GENERATE_PUZZLE_SYSTEM_PROMPT_CHINESE
-                user_prompt = f"请生成一个{difficulty}难度的中文字词接龙题目，使用Pattern {pattern}。记住要确保词汇多样性。"
+                user_prompt = f"""请生成一个{difficulty}难度的中文字词接龙题目，使用Pattern {pattern}。
+
+**主题建议**: {theme}
+
+**重要要求**:
+- 每次必须生成完全不同的答案字
+- 避免使用常见重复字如"气、火、水、土、风、雨、天、地"
+- 从{theme}领域选择词汇
+- 确保词汇新颖、有趣、不重复
+
+请创造性地思考，生成独特的题目。"""
             else:
                 system_prompt = GENERATE_PUZZLE_SYSTEM_PROMPT_ENGLISH
-                user_prompt = f"Generate an {difficulty} difficulty English word association puzzle. Remember to ensure vocabulary diversity."
+                user_prompt = f"Generate an {difficulty} difficulty English word association puzzle. Use creative, unique, and diverse vocabulary. Avoid common repetitive words."
             
             messages = [
                 {"role": "system", "content": system_prompt},
@@ -386,7 +411,7 @@ class GameService:
             response = await llm_service.chat_completion(
                 model=llm,
                 messages=messages,
-                temperature=0.9,  # 高温度以增加多样性
+                temperature=1.1,  # 更高温度以增加多样性和创造性
                 max_tokens=2000
             )
             
@@ -520,6 +545,7 @@ class GameService:
             logger.info(f"Answer matched exactly | puzzle_id={puzzle_id}")
             return {
                 'correct': True,
+                'correct_answer': correct_answer,  # Always include correct answer
                 'match_type': 'exact',
                 'reason': '答案完全正确'
             }
@@ -555,13 +581,23 @@ class GameService:
                 max_tokens=500
             )
             
-            # 解析验证结果
-            result = self._parse_llm_response(response, 'validation')
+            # 解析验证结果 (validation response is simple JSON, not a puzzle)
+            try:
+                result = json.loads(response.strip())
+            except json.JSONDecodeError:
+                # Try to extract JSON from response
+                import re
+                json_match = re.search(r'\{.*\}', response, re.DOTALL)
+                if json_match:
+                    result = json.loads(json_match.group())
+                else:
+                    raise ValueError("Failed to parse LLM validation response")
             
             logger.info(f"LLM validation result | puzzle_id={puzzle_id} | correct={result.get('correct', False)}")
             
             return {
                 'correct': result.get('correct', False),
+                'correct_answer': correct_answer,  # Always include correct answer
                 'match_type': 'llm_verified' if result.get('correct', False) else 'incorrect',
                 'reason': result.get('reason', '')
             }
@@ -571,6 +607,7 @@ class GameService:
             # 降级：只接受精确匹配
             return {
                 'correct': False,
+                'correct_answer': correct_answer,  # Always include correct answer
                 'match_type': 'error',
                 'reason': '验证服务暂时不可用，只接受精确答案'
             }

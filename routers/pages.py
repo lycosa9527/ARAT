@@ -23,3 +23,8 @@ async def demo_page(request: Request):
     """Demo页面 - 显示答案的开发模式"""
     return templates.TemplateResponse("demo.html", {"request": request})
 
+@router.get("/admin", response_class=HTMLResponse)
+async def admin_page(request: Request):
+    """Admin管理面板 - 数据库管理、库存状态、游戏Demo"""
+    return templates.TemplateResponse("admin.html", {"request": request})
+

@@ -59,6 +59,10 @@ class ValidateAnswerRequest(BaseModel):
     answer: str = Field(..., min_length=1, max_length=50, description="用户答案")
     llm: str = Field(default="qwen", description="LLM模型")
 
+class GetAnswerRequest(BaseModel):
+    """获取题目答案请求 (用于跳过和Demo模式)"""
+    puzzle_id: str = Field(..., description="题目ID")
+
 class DemoPasskeyRequest(BaseModel):
     """Demo模式密钥验证请求 (参考MindGraph)"""
     passkey: str = Field(..., min_length=6, max_length=6, description="6位数字密钥")
